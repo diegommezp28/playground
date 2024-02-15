@@ -17,6 +17,8 @@ format:
       light: cosmo
       dark: cyborg
     css: styles.css
+execute:
+  freeze: auto
 
 
 
