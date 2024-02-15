@@ -23,7 +23,8 @@ comments:
     theme: github-dark-orange
     issue-term: pathname
 website:
-  open-graph: true
+  open-graph: 
+    image: images/thumbnail_2.png
   twitter-card: true
 ---
 
