@@ -16,7 +16,7 @@ about:
 
 ---
 
-Hi, mi name is Diego Andrés Gómez Polo, a colombian Systems & Computing Engineer and Mathematician from Universidad de los Andes. 
+Hi, my name is Diego Andrés Gómez Polo, a colombian Systems & Computing Engineer and Mathematician from Universidad de los Andes. 
 
 Currently a Machine Learning Engineer at Rappi.
 

@@ -1,6 +1,6 @@
 ---
 title: "New Horizons"
-description: "Some thoughts about my first test post and using Quarto."
+description: "Some thoughts about my first post and using Quarto."
 author: "Diego Andrés Gómez Polo"
 date: "2/15/2024"
 draft: false
@@ -16,13 +16,27 @@ title-block-banner-color: white
 categories: ["personal"]
 image: images/thumbnail_2.png
 toc: true
+comments: 
+  utterances:
+    repo: diegommezp28/RL_implementations
+    label: blog-comments
+    theme: github-dark-orange
+    issue-term: pathname
 ---
 
 ## A Brief Introduction
 
-For a while now i have been trying to express my thoughs in a shareable media. I ran around circles trying to figure out which technology should i use, but that was more of an excuse to avoid actually sitting and taking the time to write. Writing is not something that comes naturally to me, but i do think is the ultimate medium to express ideas and share them with others. So this is the start of what i hope would be a nice adventure into my own thoughts and ideas.
+For a while now i have been trying to express my thoughs in a shareable media. I ran around circles trying to figure out which technology should i use, with what topic should i start and many other self-made blockers. Finally, i think i've found a decent media that has all the requirements i hoped for. This blog and the website itself is powered by [Quarto](https://quarto.org/), a technology that lets me combine Markdown, Python, R, and Latex into a single document
+
+This is a note to myself: *You are now out of excuses to actually start writing*
+
+A personal Blog is a project i've been procrastinating for a while now. The idea of exposing you thoughts for everyone to see them is rather scary, but i can not think of a better way of actually learning an consolidating ones mental models. Language is a projection of our thoughts, and writing is a way of making them tangible, and most importantly, shareable.
 
 
+
+
+## Quarto's Capabilities
+What follows now is dummy made up content to demonstrate the capabilities of Quarto.
 
 ### A Nice Figure
 
