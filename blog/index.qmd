@@ -9,7 +9,7 @@ about:
       href: https://twitter.com/GomezpoloDiego
     - icon: linkedin
       text: LinkedIn
-      href: https://twitter.com/GomezpoloDiego
+      href: https://www.linkedin.com/in/diegomezp28/
     - icon: github
       text: Github
       href: https://github.com/diegommezp28
