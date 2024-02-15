@@ -1,0 +1,133 @@
+---
+title: "New Horizons"
+description: "Some thoughts about my first test post and using Quarto."
+author: "Diego Andrés Gómez Polo"
+date: "2/15/2024"
+draft: false
+format:
+  html:
+    code-fold: true
+    code-summary: "Show source"
+    code-copy: true
+jupyter: python3
+bibliography: ref.bib
+title-block-banner: images/banner_3.png
+title-block-banner-color: white
+categories: ["personal"]
+image: images/thumbnail_2.png
+toc: true
+---
+
+## A Brief Introduction
+
+For a while now i have been trying to express my thoughs in a shareable media. I ran around circles trying to figure out which technology should i use, but that was more of an excuse to avoid actually sitting and taking the time to write. Writing is not something that comes naturally to me, but i do think is the ultimate medium to express ideas and share them with others. So this is the start of what i hope would be a nice adventure into my own thoughts and ideas.
+
+
+
+### A Nice Figure
+
+Tet's see if we can add a nice figure to this post.
+
+```{python}
+#| label: fig-polar
+#| fig-cap: "A line plot on a polar axis"
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+r = np.arange(0, 2, 0.01)
+theta = 2 * np.pi * r
+fig, ax = plt.subplots(
+  subplot_kw = {'projection': 'polar'} 
+)
+ax.plot(theta, r)
+ax.set_rticks([0.5, 1, 1.5, 2])
+ax.grid(True)
+plt.show()
+```
+
+### A Pretty Equation
+
+Now let's do some math.
+
+$$
+\int_0^\infty x^2 dx
+$$
+
+::: {.callout-tip}
+## Tip
+
+Use single dollar sings \$ for inline math $\frac{1}{2}$
+:::
+
+::: {.column-margin}
+**Some column margin text in here: **
+
+We know from *the first fundamental theorem of calculus* that for $x$ in $[a, b]$:
+
+$$\frac{d}{dx}\left( \int_{a}^{x} f(u)\,du\right)=f(x).$$
+:::
+
+### An Interactive Plot
+
+What if we want the nice graph to be interactive?
+
+```{python}
+#| label: fig-interactive
+#| fig-cap: "An interactive plot"
+#| code-fold: false
+import plotly.express as px
+import plotly.io as pio
+df = px.data.iris()
+fig = px.scatter(df, x="sepal_width", y="sepal_length",             # <1>
+                 color="species",                                  # <1>
+                 marginal_y="violin", marginal_x="box",            # <1>
+                 trendline="ols", template="simple_white")         # <1>
+fig.show()
+```
+1. Example of `code` line annotations
+
+### Pretty Tables
+
+| Default | Left | Right | Center |
+|---------|:-----|------:|:------:|
+| 12      | 12   |    12 |   12   |
+| 123     | 123  |   123 |  123   |
+| 1       | 1    |     1 |   1    |
+
+: Demonstration of pipe table syntax
+
+### A Wider Figure
+
+```{python}
+#| label: fig-wide
+#| fig-cap: "A wide figure"
+#| column: page
+#| code-fold: false
+
+
+import pandas as pd
+df = pd.read_csv('https://raw.githubusercontent.com/plotly/datasets/master/earthquakes-23k.csv')
+
+import plotly.express as px
+fig = px.density_mapbox(df, lat='Latitude', lon='Longitude', z='Magnitude', radius=10,
+                        center=dict(lat=0, lon=180), zoom=0,
+                        mapbox_style="open-street-map")
+fig.show()
+```
+
+::: {.column-margin}
+| Default | Left | Right | Center |
+|---------|:-----|------:|:------:|
+| 12      | 12   |    12 |   12   |
+| 123     | 123  |   123 |  123   |
+| 1       | 1    |     1 |   1    |
+
+: A Margin Table
+:::
+
+### References
+What about some biblioghraphy and cross-references?
+
+- Reinforcement Learning Stuff [@montague1999reinforcement]
+- Cross-referencing a figure @fig-interactive

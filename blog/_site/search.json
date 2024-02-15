@@ -1,0 +1,44 @@
+[
+  {
+    "objectID": "blog.html",
+    "href": "blog.html",
+    "title": "Blog",
+    "section": "",
+    "text": "New Horizons\n\n\n\n\n\n\npersonal\n\n\n\nSome thoughts about my first test post and using Quarto.\n\n\n\n\n\nFeb 15, 2024\n\n\nDiego Andrés Gómez Polo\n\n\n\n\n\n\n\n\n\n\n\n\nPost With Code\n\n\n\n\n\n\nnews\n\n\ncode\n\n\nanalysis\n\n\n\n\n\n\n\n\n\nFeb 14, 2024\n\n\nHarlow Malloc\n\n\n\n\n\n\n\n\n\n\n\n\nWelcome To My Blog\n\n\n\n\n\n\nnews\n\n\n\n\n\n\n\n\n\nFeb 11, 2024\n\n\nTristan O’Malley\n\n\n\n\n\n\nNo matching items"
+  },
+  {
+    "objectID": "posts/first_post/index.html",
+    "href": "posts/first_post/index.html",
+    "title": "New Horizons",
+    "section": "",
+    "text": "For a while now i have been trying to express my thoughs in a shareable media. I ran around circles trying to figure out which technology should i use, but that was more of an excuse to avoid actually sitting and taking the time to write. Writing is not something that comes naturally to me, but i do think is the ultimate medium to express ideas and share them with others. So this is the start of what i hope would be a nice adventure into my own thoughts and ideas.\n\n\nTet’s see if we can add a nice figure to this post.\n\n\nShow source\nimport numpy as np\nimport matplotlib.pyplot as plt\n\nr = np.arange(0, 2, 0.01)\ntheta = 2 * np.pi * r\nfig, ax = plt.subplots(\n  subplot_kw = {'projection': 'polar'} \n)\nax.plot(theta, r)\nax.set_rticks([0.5, 1, 1.5, 2])\nax.grid(True)\nplt.show()\n\n\n\n\n\n\n\n\nFigure 1: A line plot on a polar axis\n\n\n\n\n\n\n\n\nNow let’s do some math.\n\\[\n\\int_0^\\infty x^2 dx\n\\]\n\n\n\n\n\n\nTip\n\n\n\nUse single dollar sings $ for inline math \\(\\frac{1}{2}\\)\n\n\n\n\nSome column margin text in here: \nWe know from the first fundamental theorem of calculus that for \\(x\\) in \\([a, b]\\):\n\\[\\frac{d}{dx}\\left( \\int_{a}^{x} f(u)\\,du\\right)=f(x).\\]\n\n\n\nWhat if we want the nice graph to be interactive?\n\nimport plotly.express as px\nimport plotly.io as pio\ndf = px.data.iris()\n1fig = px.scatter(df, x=\"sepal_width\", y=\"sepal_length\",\n                 color=\"species\",\n                 marginal_y=\"violin\", marginal_x=\"box\",\n                 trendline=\"ols\", template=\"simple_white\")\nfig.show()\n\n\n1\n\nExample of code line annotations\n\n\n\n\n\n\n                                                \n\n\nFigure 2: An interactive plot\n\n\n\n\n\n\n\n\nDemonstration of pipe table syntax\n\n\nDefault\nLeft\nRight\nCenter\n\n\n\n\n12\n12\n12\n12\n\n\n123\n123\n123\n123\n\n\n1\n1\n1\n1\n\n\n\n\n\n\n\nimport pandas as pd\ndf = pd.read_csv('https://raw.githubusercontent.com/plotly/datasets/master/earthquakes-23k.csv')\n\nimport plotly.express as px\nfig = px.density_mapbox(df, lat='Latitude', lon='Longitude', z='Magnitude', radius=10,\n                        center=dict(lat=0, lon=180), zoom=0,\n                        mapbox_style=\"open-street-map\")\nfig.show()\n\n\n\n                                                \n\n\nFigure 3: A wide figure\n\n\n\n\n\n\n\nA Margin Table\n\n\nDefault\nLeft\nRight\nCenter\n\n\n\n\n12\n12\n12\n12\n\n\n123\n123\n123\n123\n\n\n1\n1\n1\n1\n\n\n\n\n\n\nWhat about some biblioghraphy and cross-references?\n\nReinforcement Learning Stuff (Montague 1999)\nCross-referencing a figure Figure 2"
+  },
+  {
+    "objectID": "posts/first_post/index.html#a-brief-introduction",
+    "href": "posts/first_post/index.html#a-brief-introduction",
+    "title": "New Horizons",
+    "section": "",
+    "text": "For a while now i have been trying to express my thoughs in a shareable media. I ran around circles trying to figure out which technology should i use, but that was more of an excuse to avoid actually sitting and taking the time to write. Writing is not something that comes naturally to me, but i do think is the ultimate medium to express ideas and share them with others. So this is the start of what i hope would be a nice adventure into my own thoughts and ideas.\n\n\nTet’s see if we can add a nice figure to this post.\n\n\nShow source\nimport numpy as np\nimport matplotlib.pyplot as plt\n\nr = np.arange(0, 2, 0.01)\ntheta = 2 * np.pi * r\nfig, ax = plt.subplots(\n  subplot_kw = {'projection': 'polar'} \n)\nax.plot(theta, r)\nax.set_rticks([0.5, 1, 1.5, 2])\nax.grid(True)\nplt.show()\n\n\n\n\n\n\n\n\nFigure 1: A line plot on a polar axis\n\n\n\n\n\n\n\n\nNow let’s do some math.\n\\[\n\\int_0^\\infty x^2 dx\n\\]\n\n\n\n\n\n\nTip\n\n\n\nUse single dollar sings $ for inline math \\(\\frac{1}{2}\\)\n\n\n\n\nSome column margin text in here: \nWe know from the first fundamental theorem of calculus that for \\(x\\) in \\([a, b]\\):\n\\[\\frac{d}{dx}\\left( \\int_{a}^{x} f(u)\\,du\\right)=f(x).\\]\n\n\n\nWhat if we want the nice graph to be interactive?\n\nimport plotly.express as px\nimport plotly.io as pio\ndf = px.data.iris()\n1fig = px.scatter(df, x=\"sepal_width\", y=\"sepal_length\",\n                 color=\"species\",\n                 marginal_y=\"violin\", marginal_x=\"box\",\n                 trendline=\"ols\", template=\"simple_white\")\nfig.show()\n\n\n1\n\nExample of code line annotations\n\n\n\n\n\n\n                                                \n\n\nFigure 2: An interactive plot\n\n\n\n\n\n\n\n\nDemonstration of pipe table syntax\n\n\nDefault\nLeft\nRight\nCenter\n\n\n\n\n12\n12\n12\n12\n\n\n123\n123\n123\n123\n\n\n1\n1\n1\n1\n\n\n\n\n\n\n\nimport pandas as pd\ndf = pd.read_csv('https://raw.githubusercontent.com/plotly/datasets/master/earthquakes-23k.csv')\n\nimport plotly.express as px\nfig = px.density_mapbox(df, lat='Latitude', lon='Longitude', z='Magnitude', radius=10,\n                        center=dict(lat=0, lon=180), zoom=0,\n                        mapbox_style=\"open-street-map\")\nfig.show()\n\n\n\n                                                \n\n\nFigure 3: A wide figure\n\n\n\n\n\n\n\nA Margin Table\n\n\nDefault\nLeft\nRight\nCenter\n\n\n\n\n12\n12\n12\n12\n\n\n123\n123\n123\n123\n\n\n1\n1\n1\n1\n\n\n\n\n\n\nWhat about some biblioghraphy and cross-references?\n\nReinforcement Learning Stuff (Montague 1999)\nCross-referencing a figure Figure 2"
+  },
+  {
+    "objectID": "posts/post-with-code/index.html",
+    "href": "posts/post-with-code/index.html",
+    "title": "Post With Code",
+    "section": "",
+    "text": "This is a post with executable code."
+  },
+  {
+    "objectID": "posts/welcome/index.html",
+    "href": "posts/welcome/index.html",
+    "title": "Welcome To My Blog",
+    "section": "",
+    "text": "This is the first post in a Quarto blog. Welcome!\n\nSince this post doesn’t specify an explicit image, the first image in the post will be used in the listing page of posts."
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "About",
+    "section": "",
+    "text": "Hi, mi name is Diego Andrés Gómez Polo, a colombian Systems & Computing Engineer and Mathematician from Universidad de los Andes.\nCurrently a Machine Learning Engineer at Rappi.\nThis is my personal blog, for anything and everything but mostly AI stuff."
+  }
+]

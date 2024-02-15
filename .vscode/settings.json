@@ -1,3 +1,4 @@
 {
-    "latex-workshop.latex.outDir": "%DIR%"
+    "latex-workshop.latex.outDir": "%DIR%",
+    "quarto.render.renderOnSave": true
 }

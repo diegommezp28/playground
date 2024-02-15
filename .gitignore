@@ -163,3 +163,5 @@ cython_debug/
 !/**/notes/*.pdf
 !/**/notes/*.tex
 !/**/notes/*.bib
+
+.DS_Store

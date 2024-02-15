@@ -1,0 +1,22 @@
+project:
+  type: website
+
+website:
+  title: "DAGP"
+  navbar:
+    left: 
+      - blog.qmd
+    right:
+      - icon: github
+        href: https://github.com/diegommezp28/RL_implementations
+      - icon: twitter
+        href: https://twitter.com/GomezpoloDiego
+format:
+  html:
+    theme: 
+      light: cosmo
+      dark: cyborg
+    css: styles.css
+
+
+

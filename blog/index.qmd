@@ -1,0 +1,23 @@
+---
+title: "About"
+image: profile_pic.JPG
+about:
+  template: jolla
+  links:
+    - icon: twitter
+      text: Twitter
+      href: https://twitter.com/GomezpoloDiego
+    - icon: linkedin
+      text: LinkedIn
+      href: https://twitter.com/GomezpoloDiego
+    - icon: github
+      text: Github
+      href: https://github.com/diegommezp28
+
+---
+
+Hi, mi name is Diego Andrés Gómez Polo, a colombian Systems & Computing Engineer and Mathematician from Universidad de los Andes. 
+
+Currently a Machine Learning Engineer at Rappi.
+
+This is my personal blog, for anything and everything but mostly AI stuff. 

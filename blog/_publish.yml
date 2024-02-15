@@ -1,0 +1,4 @@
+- source: project
+  netlify:
+    - id: 273e52a6-4861-4058-9530-750e3bacd56d
+      url: 'https://creative-salamander-0ffc8a.netlify.app'
