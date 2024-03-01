@@ -14,7 +14,7 @@ bibliography: ref.bib
 title-block-banner: images/banner.jpeg
 title-block-banner-color: white
 categories: ["personal"]
-image: images/thumbnail.png
+image: images/thumbnail.jpeg
 toc: true
 comments: 
   utterances:
