@@ -1,0 +1,31 @@
+---
+title: ""
+description: ""
+author: "Diego Andrés Gómez Polo"
+date: "2/15/2024"
+draft: true
+format:
+  html:
+    code-fold: true
+    code-summary: "Show source"
+    code-copy: true
+jupyter: python3
+bibliography: ref.bib
+title-block-banner: images/banner_3.png
+title-block-banner-color: white
+categories: ["ai"]
+image: images/thumbnail_2.png
+toc: true
+comments: 
+  utterances:
+    repo: diegommezp28/RL_implementations
+    label: blog-comments
+    theme: github-dark-orange
+    issue-term: pathname
+website:
+  open-graph: 
+    image: images/thumbnail_2.png
+  twitter-card: true
+---
+
+## A Brief Introduction

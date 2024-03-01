@@ -3,7 +3,7 @@ project:
 
 website:
   title: "DAGP"
-  favicon: favicon.png
+  favicon: favicon.jpeg
   navbar:
     left: 
       - blog.qmd

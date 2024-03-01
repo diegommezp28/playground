@@ -11,10 +11,10 @@ format:
     code-copy: true
 jupyter: python3
 bibliography: ref.bib
-title-block-banner: images/banner_3.png
+title-block-banner: images/banner.jpeg
 title-block-banner-color: white
 categories: ["personal"]
-image: images/thumbnail_2.png
+image: images/thumbnail.png
 toc: true
 comments: 
   utterances:
@@ -24,7 +24,7 @@ comments:
     issue-term: pathname
 website:
   open-graph: 
-    image: images/thumbnail_2.png
+    image: images/thumbnail.jpeg
   twitter-card: true
 ---
 
