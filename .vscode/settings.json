@@ -1,4 +1,7 @@
 {
     "latex-workshop.latex.outDir": "%DIR%",
-    "quarto.render.renderOnSave": true
+    "quarto.render.renderOnSave": true,
+    "quarto.mathjax.extensions": [
+        "upgreek"
+    ]
 }

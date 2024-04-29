@@ -1,0 +1,12 @@
+{
+  "hash": "6fe5f590d679464f2074f472d06be932",
+  "result": {
+    "engine": "jupyter",
+    "markdown": "---\ntitle: 'The Future of AI: Part 2'\ndescription: The Challenges to Come\nauthor: Diego Andrés Gómez Polo\ndate: 2/15/2024\ndraft: true\nformat:\n  html:\n    code-fold: true\n    code-summary: Show source\n    code-copy: true\nbibliography: ref.bib\ntitle-block-banner: images/banner.png\ntitle-block-banner-color: white\ncategories:\n  - ai\n  - opinion\nimage: images/thumbnail.png\ntoc: true\ncomments:\n  utterances:\n    repo: diegommezp28/RL_implementations\n    label: blog-comments\n    theme: github-dark-orange\n    issue-term: pathname\nwebsite:\n  open-graph:\n    image: images/thumbnail.png\n  twitter-card: true\n---\n\n## Introduction\n\nIn this post we will keep the optimistic/hopefull narrative and start thinking on the challenges that society will have to overcome even in the best case scenario where AI is used for the benefit of all.\n\n",
+    "supporting": [
+      "index_files"
+    ],
+    "filters": [],
+    "includes": {}
+  }
+}

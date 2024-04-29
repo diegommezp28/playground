@@ -144,8 +144,10 @@ fig.show()
 : A Margin Table
 :::
 
-### References
+### Citations and Cross-References
 What about some biblioghraphy and cross-references?
 
 - Reinforcement Learning Stuff [@montague1999reinforcement]
 - Cross-referencing a figure @fig-interactive
+
+It support BibTeX and Cross-references. cool!!

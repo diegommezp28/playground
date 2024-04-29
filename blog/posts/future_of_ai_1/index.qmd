@@ -1,6 +1,6 @@
 ---
-title: ""
-description: ""
+title: "The Future of AI: Part 1"
+description: "An Optimistic Point of View"
 author: "Diego Andrés Gómez Polo"
 date: "2/15/2024"
 draft: true
@@ -11,10 +11,10 @@ format:
     code-copy: true
 jupyter: python3
 bibliography: ref.bib
-title-block-banner: images/banner_3.png
+title-block-banner: images/banner.png
 title-block-banner-color: white
-categories: ["ai"]
-image: images/thumbnail_2.png
+categories: ["ai", "opinion"]
+image: images/thumbnail.png
 toc: true
 comments: 
   utterances:
@@ -24,8 +24,39 @@ comments:
     issue-term: pathname
 website:
   open-graph: 
-    image: images/thumbnail_2.png
+    image: images/thumbnail.png
   twitter-card: true
 ---
 
-## A Brief Introduction
+## Introduction
+
+
+### Let's try to define our goal: What is AGI?
+
+### The Extraordinary Economic Impact of even a "Dumb" AGI
+
+### There likely won't be a "singularity"
+
+#### The Elefant in the Room: "Moore's Law"
+
+#### The Human Brain Runs on 20 Watts, Transistors-based AGI won't
+
+- Will AGI be able to develop and manufacture something better than transistors on its own?
+
+#### Energetic Upper Bound to Self Improvement and Replication
+
+#### Are We Suddenly Avandoning the Scientific Method?
+
+- You can not infinitely self improve without new fundamental knowledge of the physical world
+- You can not aquire new fundamental knowledge of the physical world without experiments
+- You can not perform experiments at a rate faster than the physical processes you are trying to understand
+
+
+
+
+<!-- Things to read before -->
+<!-- Symbolic Grounding -->
+<!-- Phisycal symbol system hypothesis -->
+<!-- Moravec's Paradox -->
+<!-- Different types fo intelligences (weak, strong, general, super, ) -->
+<!-- AI complete and AI Hard problems -->

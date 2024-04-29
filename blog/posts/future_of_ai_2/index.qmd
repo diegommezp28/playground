@@ -1,0 +1,33 @@
+---
+title: "The Future of AI: Part 2"
+description: "The Challenges to Come"
+author: "Diego Andrés Gómez Polo"
+date: "2/15/2024"
+draft: true
+format:
+  html:
+    code-fold: true
+    code-summary: "Show source"
+    code-copy: true
+jupyter: python3
+bibliography: ref.bib
+title-block-banner: images/banner.png
+title-block-banner-color: white
+categories: ["ai", "opinion"]
+image: images/thumbnail.png
+toc: true
+comments: 
+  utterances:
+    repo: diegommezp28/RL_implementations
+    label: blog-comments
+    theme: github-dark-orange
+    issue-term: pathname
+website:
+  open-graph: 
+    image: images/thumbnail.png
+  twitter-card: true
+---
+
+## Introduction
+
+In this post we will keep the optimistic/hopefull narrative and start thinking on the challenges that society will have to overcome even in the best case scenario where AI is used for the benefit of all.
