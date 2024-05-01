@@ -3,5 +3,6 @@
     "quarto.render.renderOnSave": true,
     "quarto.mathjax.extensions": [
         "upgreek"
-    ]
+    ],
+    "quarto.visualEditor.markdownReferenceLinks": true
 }
