@@ -208,24 +208,30 @@ Let's be precise about these concepts, since they are the key parts a Software E
 
 A ***Program*** is a set of instructions that are meant to be executed by the CPU. This is the code you write in your favorite programming language, which is then compiled or, in the case of Languages like Python, interpreted by another program called the *Interpreter*. Anyways, the important thing is that a Program is just machine code that the CPU can execute (think, for example, of all of those `.exe` files).
 
-A ***Process*** is an instance of a Program that is being executed by the CPU. This is the actual running of the Program, with all the data structures, memory, and resources that it needs to run properly. The OS Kernel creates a Process for every Program that you run.
+A ***Process*** is an instance of a Program that is being executed by the CPU. This is the actual running of the Program, with all the data structures, memory, and resources that it needs to run properly. The OS Kernel creates a Process for every instance of a Program that you run (if you click on a `.exe` file many times, your OS will create a separate process for each time).
 
 If you open the *Task Manager* in Windows, the *Activity Monitor* in MacOS or run `systemctl ` in Linux, you will see a list of all the Processes that are currently running in your computer, and you will see that there are many of them, even if you are not running many applications. This is because the OS Kernel also creates Processes for itself, for the *System Services*, for the *Drivers*, and for every running instance of your favorite browser, text editor, or game.
 
-A ***Thread*** is a unit of execution within a Process. 
+A ***Thread*** means an *execution thread* within a Process, i.e, a series or list of instructions, from the ones that the Process has in memory, that is meant to be executed. 
 
-A Process can have many Threads, and every Thread has its own *Program Counter*, *Registers*, and *Stack*. But Threads of the same Process share the same *Memory Space*, including the actual code, *File Descriptors*, and *Resources*.
+Crearly each Thread needs the specifics of which instructions from the whole set to execute, and some resources to do it, that is why, for each Thread we also  have indepedent [*Program Counter*](https://en.wikipedia.org/wiki/Program_counter), [*Registers*](https://en.wikipedia.org/wiki/Processor_register), and [*Stack*](https://en.wikipedia.org/wiki/Call_stack). But Threads of the same Process share the same *Memory Space*, including, as said before, the actual code, also, the *File Descriptors*, and any other shared resources.
 
 *Threads* are also the smallest unit of execution, meaning the OS Kernel will Schedule Threads, not Processes, to run in the CPU. This is because Threads are much lighter than Processes, since they share the same Memory Space, and the OS Kernel can easily switch between them, without having to do a lot of work to save and restore the state of the Process.
 
+
+
 #### Process Control Block (PCB): The Actual Data Structure of a Process
 
-#### What is a Context Switch?
+#### Process State Models, Rings of Protection and General Hierarchy
 
 
 ### OS Kernel Scheduler
 
+#### Time Slices
+
 #### Process Queues
+
+#### Context Switch
 
 #### Round Robin Scheduling
 
