@@ -17,7 +17,7 @@ __global__ void add_basic(int *x, int n)
 int main()
 {
     // COMPLETE THIS
-    int N = 1000;
+    int N = 1000000;
 
     int *x;
 
