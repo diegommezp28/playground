@@ -10,7 +10,6 @@ format:
     code-summary: "Show source"
     code-copy: true
     smooth-scroll: true
-jupyter: python3
 bibliography: ref.bib
 csl: ieee-with-url.csl
 # title-block-banner: images/banner.png
@@ -29,6 +28,9 @@ website:
   # open-graph: 
   #   image: images/thumbnail.png
   twitter-card: true
+editor:
+  render-on-save: true
+jupyter: python3
 ---
 
 ## Motivation
@@ -204,9 +206,11 @@ Every piece of information about your program, its state, the things it needs to
 
 #### Programs, Processes, and Threads
 
-Let's be precise about these concepts, since they are the key parts a Software Engineer actually needs to understand to properly program concurrent applications.
+Let's be precise about these concepts, since they are the key parts a software engineer actually needs to understand to properly program concurrent applications.
 
 A ***Program*** is a set of instructions that are meant to be executed by the CPU. This is the code you write in your favorite programming language, which is then compiled or, in the case of Languages like Python, interpreted by another program called the *Interpreter*. Anyways, the important thing is that a Program is just machine code that the CPU can execute (think, for example, of all of those `.exe` files).
+
+![Process Control Block and Thread Control Block](images/pcb_tcb.svg){#fig-pcb-tcb width=85%}
 
 A ***Process*** is an instance of a Program that is being executed by the CPU. This is the actual running of the Program, with all the data structures, memory, and resources that it needs to run properly. The OS Kernel creates a Process for every instance of a Program that you run (if you click on a `.exe` file many times, your OS will create a separate process for each time).
 
@@ -214,13 +218,15 @@ If you open the *Task Manager* in Windows, the *Activity Monitor* in MacOS or ru
 
 A ***Thread*** means an *execution thread* within a Process, i.e, a series or list of instructions, from the ones that the Process has in memory, that is meant to be executed. 
 
-Crearly each Thread needs the specifics of which instructions from the whole set to execute, and some resources to do it, that is why, for each Thread we also  have indepedent [*Program Counter*](https://en.wikipedia.org/wiki/Program_counter), [*Registers*](https://en.wikipedia.org/wiki/Processor_register), and [*Stack*](https://en.wikipedia.org/wiki/Call_stack). But Threads of the same Process share the same *Memory Space*, including, as said before, the actual code, also, the *File Descriptors*, and any other shared resources.
+Crearly each Thread needs the specifics of which instructions from the whole set to execute, and some resources to do it, that is why, for each Thread we also  have indepedent [*Program Counter*](https://en.wikipedia.org/wiki/Program_counter), [*Registers*](https://en.wikipedia.org/wiki/Processor_register), and [*Stack*](https://en.wikipedia.org/wiki/Call_stack). But Threads of the same Process share the same *Memory Space*, including, as said before, the actual code, also, the *File Descriptors* and the *Heap*.
 
 *Threads* are also the smallest unit of execution, meaning the OS Kernel will Schedule Threads, not Processes, to run in the CPU. This is because Threads are much lighter than Processes, since they share the same Memory Space, and the OS Kernel can easily switch between them, without having to do a lot of work to save and restore the state of the Process.
 
 
 
 #### Process Control Block (PCB): The Actual Data Structure of a Process
+
+#### Thread Control Block (TCB): The Actual Data Structure of a Thread
 
 #### Process State Models, Rings of Protection and General Hierarchy
 
