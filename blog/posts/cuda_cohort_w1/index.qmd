@@ -30,7 +30,7 @@ website:
   twitter-card: true
 editor:
   render-on-save: true
-jupyter: python3
+# jupyter: python3
 ---
 
 ## Motivation
@@ -135,7 +135,7 @@ Your CPU also interacts with external storage and I/O devices via the **Buses** 
 
 Well, it turns out that even though this design is capable of supporting a complete system running many apps, it is ***NOT*** running them all at the same time. In fact, in the simplest case, a given CPU core is only capable of running a single instruction of a very limited [set of instructions](https://en.wikipedia.org/wiki/Instruction_set_architecture) at a time.
 
-Everything your computer ever does must be translated, in one way or another, to a series of these simple instructions ^[That is why we have [compilers](https://en.wikipedia.org/wiki/Compiler) and why a program needs to be compiled for every different target [Instruction Set Architecture](https://en.wikipedia.org/wiki/Comparison_of_instruction_set_architectures), like [x_64](https://en.wikipedia.org/wiki/X86-64), [x_86](https://en.wikipedia.org/wiki/X86), [RISC](https://en.wikipedia.org/wiki/Reduced_instruction_set_computer), etc,  since those have different instruction sets], which are interpreted by the Control Unit and the executed either by the Control Unit itself when they involve control flow operations or by the ALU when they involve arithmetic or logical operations.
+Everything your computer ever does must be translated, in one way or another, to a series of these simple instructions ^[That is why we have [compilers](https://en.wikipedia.org/wiki/Compiler) and why a program needs to be compiled for every different target [Instruction Set Architecture](https://en.wikipedia.org/wiki/Comparison_of_instruction_set_architectures), like [x_64](https://en.wikipedia.org/wiki/X86-64), [x_86](https://en.wikipedia.org/wiki/X86), [RISC](https://en.wikipedia.org/wiki/Reduced_instruction_set_computer), etc,  since those have different instruction sets], which are interpreted by the Control Unit and then executed either by the Control Unit itself when they involve control flow operations or by the ALU when they involve arithmetic or logical operations.
 
 But clearly you have seen your computer running many things at the same time, right? The music in the background doesn't just stop playing if you open a new tab in your browser, right? Well, in some sense, it does, but it is so fast that you don't notice it.
 
@@ -185,7 +185,7 @@ On most of today's consumer grade CPUs, the CPU exposes 2 execution contexts per
 We are not Electronic Engineers in here, nor chip designers (or maybe you are, who knows), but this is a fascinating topic, so if you want a deeper dive into this subject, i recommend you resources like [WikiChip](https://en.wikichip.org/wiki/intel/microarchitectures/skylake_(client)#Individual_Core) and the [Intel Developer Manual](https://software.intel.com/content/www/us/en/develop/articles/intel-sdm.html) for a more detailed explanation of the microarchitecture of modern CPUs.
 :::
 
-### How does the OS Kernel Interacts with the CPU
+### Programs, Processes, and Threads
 
 From now on, we will, *mostly*, talk about software. From a low level with the OS Kernel, to a very high level with Python, but still, software.
 
@@ -204,7 +204,7 @@ Every piece of information about your program, its state, the things it needs to
 
 <!-- There must be some form of predefined structure that gives all the control to the OS kernel and is able to give execution time to every program that wants to run -->
 
-#### Programs, Processes, and Threads
+#### Definitions
 
 Let's be precise about these concepts, since they are the key parts a software engineer actually needs to understand to properly program concurrent applications.
 
@@ -224,12 +224,36 @@ Crearly each Thread needs the specifics of which instructions from the whole set
 
 
 
-#### Process Control Block (PCB): The Actual Data Structure of a Process
+::: {.callout-warning collapse=false}
+# Process Control Block (PCB): The Actual Data Structure of a Process
 
-#### Thread Control Block (TCB): The Actual Data Structure of a Thread
+PCB is the generic term used to refer to the Data Structure that an OS employs in order to manage Processes. In the case of the Linux Kernel (the only major one where we can see the code), it is called the [*task_struct*](https://elixir.bootlin.com/linux/v6.2-rc1/source/include/linux/sched.h#L737) and it is a very complex structure that holds all the information about a Process. @pcb_5
+:::
 
-#### Process State Models, Rings of Protection and General Hierarchy
+::: {.callout-warning collapse=false}
+# Thread Control Block (TCB): The Actual Data Structure of a Thread
 
+<!-- TODO update PCB image with linux implementatino following: https://medium.com/@boutnaru/linux-kernel-task-struct-829f51d97275 -->
+
+Likewise, TCB is the generic term used to refer to the Data Structure that an OS employs in order to manage Threads. Linux implements it by kind of cheating, because for the Linux Kernel, a Thread is just another *task_struct*, the same as before, but with a pointer to a parent *task_struct* that is the [*parent Process*](https://elixir.bootlin.com/linux/v6.2-rc1/source/include/linux/sched.h#L975) for the Thread, also, all the [*children Threads*](https://elixir.bootlin.com/linux/v6.2-rc1/source/include/linux/sched.h#L983) of a Process will share some resources but will have some differences specified in the [*thread_info*](https://elixir.bootlin.com/linux/v6.2-rc1/source/arch/alpha/include/asm/thread_info.h#L15) struct, and you can create a new children Thread by calling the [`clone()`](https://man7.org/linux/man-pages/man2/clone.2.html) system call. 
+
+In this sense you may see that in Linux, we have a tree-like structure of tasks, with the root being the first process (PID 0), i.e, the [*init*](https://en.wikipedia.org/wiki/Init#:~:text=Init%20is%20a%20daemon%20process,automatically%20adopts%20all%20orphaned%20processes) process, and every other process being an ancestor of the *init* process, finally, the Threads will then be the leaves of this [tree](https://linuxhandbook.com/show-process-tree/) of tasks. @pcb_1 @pcb_2 @pcb_3 @pcb_4 @pcb_5
+
+This is in Linux, in other OSs, like Windows, Threads are a separate concept from Processes, and they have their own Data Structure, but the idea is the same, they hold all the information about the Thread, like the Registers, the Stack, the Program Counter, and so on, as specified in @fig-pcb-tcb, but between [*sibling Threads*](https://elixir.bootlin.com/linux/v6.2-rc1/source/include/linux/sched.h#L984), they will share the same Memory Space, the same File Descriptors, and the same Heap.
+:::
+
+
+::: {.callout-warning collapse=false}
+
+# Process State Models, Protection Rings and General Hierarchy
+
+<!-- 5 State model graph -->
+
+<!-- Rings of protection graph, only 2 to support older architectures -->
+
+@protection_rings_1 @protection_rings_2
+
+:::
 
 ### OS Kernel Scheduler
 
@@ -274,7 +298,4 @@ Crearly each Thread needs the specifics of which instructions from the whole set
 ### (I/O-Bound) Speeding up Batch Calls to the OpenAI API
 
 ## Conclusion
-
-
-
-## Glossary
+...
