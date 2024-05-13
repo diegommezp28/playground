@@ -43,6 +43,10 @@ filters:
 
 ---
 
+:::{.callout-important}
+**DRAFT - WORK IN PROGRESS**
+:::
+
 ## Motivation
 
 If you've worked in software for long enough, you've probably heard in the wild people throwing around terms like *multithreading*, *multiprocessing*, *asynchronous programming*, *concurrency*, *parallelism*, and so on. Often, and mistakenly, these terms are used interchangeably, to refere to stuff thet happens *'at the same time'* in a computer program. You will see in this blog how most of the time this *'parallel behaviour'* is actually a carefully orchestrated illusion by the OS kernel and the CPU that lies at the heart of your computer. You will also learn how these concepts apply to Python and ML tasks in both CPU-bound and I/O-bound scenarios (don't worry, we will define these terms later ;D) and how a proper understanding of these concepts can help you speed up your ML tasks.
