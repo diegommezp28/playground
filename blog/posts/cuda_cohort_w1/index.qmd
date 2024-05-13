@@ -37,7 +37,8 @@ website:
   twitter-card: true
 editor:
   render-on-save: true
-# jupyter: python3
+filters:
+  - parse-latex
 
 
 ---
@@ -316,13 +317,13 @@ This is in Linux, in other OSs, like Windows, Threads are a separate concept fro
 ::: {.callout-warning collapse="false"}
 # Protection Rings and General Hierarchy
 
-<!-- TODO graph Rings of protection graph, only 2 to support older architectures -->
-
 The core distinction between the kernel process and all other processes is implemented at the hardware level by using [*Protection Rings*]. These are a set of hardware-enforced protection domains that are used to control the CPU's access to memory, I/O devices, and other resources. The OS kernel runs in the most privileged ring, usually ring 0, while user processes run in a less privileged ring, usually ring 3. This is a security feature that prevents user processes from accessing system resources directly and ensures that the OS kernel has full control over the system.
 
 ![Rings of Protection. Fig Source: [Wikipedia]][1]
 
 Modern microarchitectures have many more than 2 protection rings, but mostly for retrocompatibliity reasons, most Operating Systems including Windows, MacOS and Linux, only use 2, the most privileged and the least privileged, where ring 0 is the *Supervisor Mode*, and ring 3 is the *User Mode*. @protection_rings_1 @protection_rings_2
+
+![Only 2 Protection Rings are used in modern Oss. Fig Source: [Wikipedia]](https://upload.wikimedia.org/wikipedia/commons/c/c7/Most_common_protection_rings.svg){#fig-2-protection-rings width="75%"}
 :::
 
   [*Protection Rings*]: https://en.wikipedia.org/wiki/Protection_ring
@@ -335,14 +336,20 @@ We are clear by now that the OS Kernel is the sole administrator of resources in
 
 Access to CPU is quite valuable, most Threads usually want it, so the OS Kernel *Scheduler* has to be very careful in how it gives it.
 
-Processes in modern OSs fall in one of, usually, 5 states, commomly known as the *5 State Model*. These states are:\
-<!-- TODO: 5 State model graph -->
+Processes in modern OSs fall in one of, usually, 5 states, commomly known as the *5 State Model*. These states are: Init, Ready, Running, Waiting and Finished. @process_states_1
+
+![5 State Model. From @process_states_1](images/5_state_model.svg){#fig-5-state-model width="85%"}
+
+:::{.callout-note}
+The *5 State Model* is an asbtraction and simplification of the actual states. For example, the Linux Kernel implements de following states: `TASK_RUNNING`, `TASK_INTERRUPTIBLE`, `TASK_UNINTERRUPTIBLE`, `TASK_STOPPED`, `TASK_ZOMBIE`. @process_states_2
+
+:::
 
 The Scheduler will look for the ones that are ready to run, and will give them execution time in the CPU. The way it gives access to CPU is by doing a *Context Switch*, which is the process of saving the state of the currently running Thread, and loading the state of the Thread that is going to run. This is a very expensive operation, since it involves saving and restoring the state of the Registers, the Program Counter, the Stack, and so on, but it is necessary to give execution time to every Thread that wants to run.
 
 #### Time Slices
 
-To have a somewhate simple way of calculating the time a Thread will be allowed to run, the Scheduler has a quanta or minimum, discrete, amount of time that it can give, called the *Time Unit*. So, the assignment of execution time for a given Thread will always be calculated as a fixed integer multiple of this Time Unit.
+To have a somewhat simple way of calculating the time a Thread will be allowed to run, the Scheduler has a quanta or minimum, discrete, amount of time that it can give, called the *Time Unit*. So, the assignment of execution time for a given Thread will always be calculated as a fixed integer multiple of this Time Unit.
 
 When a Thread is given Time Units of execution, it is called a *Time Slice*, and the Scheduler will preemptively take the Thread out of the CPU when it has used up all of its *Time Slice*, and will give the CPU to another Thread that is ready to run. This is the essence of a *Preemptive Scheduler*, which is the most common type of Scheduler in modern OSs.
 
@@ -350,7 +357,7 @@ When a Thread is given Time Units of execution, it is called a *Time Slice*, and
 
 #### Scheduling Algorithm
 
-The way the Scheduler decides which Thread to run next is called the [*Scheduling Algorithm*]. There are many of these, and they are usually classified in two categories: ***Preemptive*** and ***Non-Preemptive***.
+The way the Scheduler decides which Thread to run next is called the [*Scheduling Algorithm*]. There are many of these, and they are usually classified in two categories: ***Preemptive*** and ***Non-Preemptive***. @priority_levels_1, @scheduler_1, @scheduler_2
 
   [*Scheduling Algorithm*]: https://www.geeksforgeeks.org/cpu-scheduling-in-operating-systems/
 
@@ -360,13 +367,13 @@ A [Preemptive Scheduler] is pessimistic, and it assumes that any given Thread wi
 
 Modern Schedulers are preemptive, and they usually use **Priority Queues** and **Round Robin Scheduling** to decide which Thread to run next.
 
-#### Priority Queues and Priority Levels\
-
-<!-- TODO Need a figure in here -->
+#### Priority Queues and Priority Levels
 
 The Priority level is how the Scheduler assigns importance to all the Threads that are ready to run. The Thread with the highest priority level will be the one schedule to run next, and the Scheduler will modify the priority level of the Threads as they run, to give execution time to all of them and to ensure that no Thread is left behind.
 
-The very specifics of the modifications and updates of priority levels vary by OS kernel implementations. For example, the linux kernel has been implemented with the [CFS or Completely Fair Scheduler] for the last 15 years, it utilizes a [Red-Black Tree] to store the Threads, and it uses the [Virtual Runtime] of the Threads to calculate the priority level.
+![Simplified Priority Levels. Source @priority_levels_1](images/priority_levels.svg){#fig-priority-levels width="85%"}
+
+The very specifics of the modifications and updates of priority levels vary by OS kernel implementations. For example, the linux kernel scheduler has been implemented with the [CFS or Completely Fair Scheduler] for the last 15 years, it utilizes a [Red-Black Tree] to store the Threads, and it uses the [Virtual Runtime] of the Threads to calculate the priority level.
 
   [CFS or Completely Fair Scheduler]: https://en.wikipedia.org/wiki/Completely_Fair_Scheduler
   [Red-Black Tree]: https://en.wikipedia.org/wiki/Red%E2%80%93black_tree
@@ -375,32 +382,36 @@ The very specifics of the modifications and updates of priority levels vary by O
 ::: {.callout-warning collapse="false"}
 ### Earliest eligible virtual deadline first scheduling
 
-[EEVDF] is the scheduler algorithm set to replace CFS. It was described almost 30 years ago, but was only merged in 2023 to the development version 6.6 of the kernel.
+[EEVDF] is the scheduler algorithm set to replace CFS. It was described almost 30 years ago, but was only merged in 2023 to the development version 6.6 of the kernel. @scheduler_3 @scheduler_4
 :::
 
   [EEVDF]: https://en.wikipedia.org/wiki/Earliest_eligible_virtual_deadline_first_scheduling
 
 #### Round Robin Scheduling
 
-When the top priority level has been given to more than one Thread, the Scheduler will use a [Round Robin Scheduling] to decide which one to run next. This is a simple algorithm that gives a fixed amount of Time Units to each Thread in a circular fashion, and then starts again. Is desgin to resolve disputes between Threads of the same priority level, and to ensure that all Threads get execution time.
+When the top priority level has been given to more than one Thread, like in @fig-priority-levels, the Scheduler will use a [Round Robin Scheduling] to decide which one to run next. This is a simple algorithm that gives a fixed amount of Time Units to each Thread in a circular fashion, and then starts again. Is desgined to resolve disputes between Threads of the same priority level, and to ensure that all Threads get execution time.
 
   [Round Robin Scheduling]: https://en.wikipedia.org/wiki/Round-robin_scheduling
 
-  <!-- TODO: Round robin figure -->
+![Simplified Round Robing Scheduler. Source @priority_levels_1](images/round_robin.svg){#fig-round-robin width="75%"}
 
 ::: {.callout-warning collapse="true"}
 ### Simulating a Round Robin Scheduler
 
-Is a very simple, yet effective algorithm, and we can simulate its behaviour even by hand with a simple example:
+Round Robin is a very simple, yet effective algorithm, and we can simulate its behaviour even by hand with a toy example:
 
 
 :::{.LATEX}
-**Example:**
+**Exercise:**
 Consider a system with 3 Threads A, B and C. The threads arrive in the order A, B, C and the arrival time are at 0ms for each thread. The time quantum is 2ms. The threads are scheduled using the Round Robin scheduling algorithm. The context switch time is negligible. The CPU burst times for threads A, B and C are 4ms, 8ms and 6ms respectively. Compute the turnaround time for each thread. 
 :::
 
 **Solution:** 
 The threads are scheduled as follows:
+
+![Example RR](images/tabla_round_robin.svg){#fig-rr-example width="100%"}
+
+> This example exercise is a modification of a very similar one shown to me in the *Cuda Mini Cohort* at Cohere For AI.
 
 - Thread A runs from 0ms to 2ms
 - Thread B runs from 2ms to 4ms
@@ -411,8 +422,6 @@ The threads are scheduled as follows:
 - Thread B runs from 12ms to 14ms
 - Thread C runs from 14ms to 16ms
 - Thread B runs from 16ms to 18ms
-
-<!-- TODO: Figure of this simulation -->
   
 The turnaround time for each thread is the time it takes to complete the execution of the thread from the time it arrives. The turnaround time for threads A, B and C are 8ms, 18ms and 16ms respectively. And the average turnaround time is 14ms.
 
