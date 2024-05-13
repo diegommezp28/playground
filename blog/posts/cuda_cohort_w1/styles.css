@@ -1,0 +1,22 @@
+@import url('https://fonts.googleapis.com/css2?family=Cardo:ital,wght@0,400;0,700;1,400&family=Lora:ital,wght@0,400..700;1,400..700&display=swap');
+
+.mth-container[display="ture"] {
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+.mjx-math {
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    width: 100% !important;
+}
+
+.LATEX {
+    font: normal 1.0em KaTeX_Main;
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
+.quarto-title-banner {
+    font-family: Cardo, serif;
+}
