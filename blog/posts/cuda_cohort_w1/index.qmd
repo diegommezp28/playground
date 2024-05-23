@@ -3,7 +3,7 @@ title: "A Guide on Multithreading and Multiprocessing: from the OS Kernel to ML 
 description: "A deep dive into multithreading and multiprocessing, its relation with the OS, and how to use it in Python for speeding up Machine Learning tasks."
 author: "Diego Andrés Gómez Polo"
 date: "2/15/2024"
-draft: true
+# draft: false
 format:
   html:
     code-fold: true
