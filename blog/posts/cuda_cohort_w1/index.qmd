@@ -1,5 +1,5 @@
 ---
-title: "On Multithreading and Multiprocessing for Machine Learning in Python"
+title: "A Guide on Multithreading and Multiprocessing with ML Applications:\nfrom the OS to Python."
 description: "A deep dive into multithreading and multiprocessing, its relation with the OS, and how to use it in Python for speeding up Machine Learning tasks."
 author: "Diego Andrés Gómez Polo"
 date: "2/15/2024"
@@ -11,7 +11,7 @@ format:
     code-copy: true
     smooth-scroll: true
     html-math-method: katex
-    highlight-style: github
+    highlight-style: pygments
     # mainfont: Lora
     fontsize: 16pt
     grid:
@@ -488,13 +488,10 @@ class Balance:
 
 def race_condition():
     balance = Balance()
-    t1, t2 = Thread(target=balance.deposit, args=(100,)), Thread(
-        target=balance.withdraw, args=(50,)
-    )
-    t1.start()
-    t2.start()
-    t1.join()
-    t2.join()
+    t1 = Thread(target=balance.deposit, args=(100,))
+    t2 = Thread(target=balance.withdraw, args=(50,))
+    t1.start(), t2.start()
+    t1.join(), t2.join()
     return balance.get_balance()
 
 
@@ -504,7 +501,16 @@ if __name__ == "__main__":
 ```
 1. Simulate possible context switch here
 
-What is happening in here will conceptually be clearer by seeing (), basically we have 2 Threads which are trying to modify the same resource, the `balance` attribute of the `Balance` class, and they are doing so without any kind of synchronization and whitout knowing about each other. Here we are forcing a context switch by calling `time.sleep(random.random() / 10)` in the middle of the method, but in a real world scenario, the context switch can happen at any moment, making it really hard to debug and reproduce the problem, since it may happen, literally, at one every 1000 or 10000 runs.
+What is happening in here will conceptually be clearer by seeing @fig-withdrawal_no_lock, basically we have 2 Threads which are trying to modify the same resource, the `balance` attribute of the `Balance` class, and they are doing so without any kind of synchronization and whitout knowing about each other. Here we are forcing a context switch by calling `time.sleep(random.random() / 10)` in the middle of the method, but in a real world scenario, the context switch can happen at any moment, making it really hard to debug and reproduce the problem, since it may happen, literally, at one every 1000 or 10000 runs.
+
+::: {#fig-withdrawal layout-ncol=2}
+
+![Unsinchronized Access to Resource](images/withdrawal_no_lock.svg){#fig-withdrawal_no_lock}
+
+![Sinchronized Access to Resource](images/withdrawal_lock.svg){#fig-withdrawal_lock}
+
+The same race condition as in the code, with and without a synchronization primitive.
+:::
 
 Not only that, but even harder to debug is the fact that some of Python's syntatic sugar operations may hide the fact that we are dealing with multiple calls to the same resource, like in the case of the `+=` operator, which is actually a shorthand for `balance = balance + amount`, and it is not atomic, meaning that it is actually 3 operations: read the value of `balance`, sum `amount` to it, and write the result back to `balance`. Implying that the context switch can happen between any of these operations, and the result will be a corrupted `balance` attribute.
 
@@ -545,13 +551,10 @@ class Balance:
 
 def race_condition():
     balance = Balance()
-    t1, t2 = Thread(target=balance.deposit, args=(100,)), Thread(
-        target=balance.withdraw, args=(50,)
-    )
-    t1.start()
-    t2.start()
-    t1.join()
-    t2.join()
+    t1 = Thread(target=balance.deposit, args=(100,))
+    t2 = Thread(target=balance.withdraw, args=(50,))
+    t1.start(), t2.start()
+    t1.join(), t2.join()
     return balance.get_balance()
 
 
@@ -563,7 +566,7 @@ if __name__ == "__main__":
 ```
 1. Use a Lock, the Python implementation of a Mutex, to synchronize access to the resource
 
-Now, the `Lock` object is used to synchronize access to the `balance` attribute, and the `with` statement is used to acquire and release the Lock, making sure that only one Thread can access the resource at a time. This way, we can be sure that the `balance` attribute will not be corrupted, and that the result of the `race_condition` function will always be the same.
+Now, the `Lock` object is used to synchronize access to the `balance` attribute, and the `with` statement is used to acquire and release the Lock, making sure that only one Thread can access the resource at a time. This way, we can be sure that the `balance` attribute will not be corrupted, and that the result of the `race_condition` function will always be the same. See @fig-withdrawal_lock
 
 
 
