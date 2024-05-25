@@ -572,17 +572,91 @@ Now, the `Lock` object is used to synchronize access to the `balance` attribute,
 
 #### Deadlocks
 
-<!-- This may very well be the most classic of problems that occur when running multiple Threads or Processes, a Deadlock. 
+Using Locks solves Race Conditions but creates its own problems. I mean, if you think about it, many entities locking many stuff all at once should lead to problems, right? Well, indeed it does, namely, Deadlocks.
 
-A Deadlock is a situation where two or more Threads are waiting for each other to release a resource, but none of them will release the resource until the other one does. 
+Deadlock are situations in which 2 or more entities, in this case Threads, are waiting for each other to release a resource, but none of them will release the resource until the other one does. Is like when you want to give the right of way to the other driver, but the other driver is also trying to give you the right of way, and you both end up stuck in the middle of the intersection.
 
-##### Solutions
 
-The most common solution to Deadlocks is to use a *Locking Hierarchy*, where you define a strict order in which the Threads can acquire the Locks, and you make sure that every Thread acquires the Locks in the same order. This way, you can ensure that no Thread will be waiting for another Thread to release a resource that it needs. -->
+::: {#fig-deadlocks layout-ncol=2}
+
+![A Deadlock in a street intersection](images/deadlock_cars.svg){#fig-deadlock-cars}
+
+![A Deadlock with 2 Threads](images/deadlock_threads.svg){#fig-deadlock-threads}
+
+Illustrative representation of a Deadlock
+:::
+
+In computers this happen only if some specific properties apply to the Locks: The first one is that the Locks acquired are not preemtible, meaning that other Threads can not just take the resource away from the Thread that is holding it; the Second one is that the Locks are not acquired in a strict order, meaning that the Threads can acquire the Locks in any order they want, and the Third one is that the Threads are waiting for each other to release the resource. 
+
+Given that these 3 conditions are met, the Threads will be stuck in a Deadlock, and the only way to solve it is to restart the program, or to kill the Threads that are stuck. 
+If we don't want to basically kill the programs, the only ways to solve Deadlock is by attacking one of such conditions. The first one is to make the Locks preemtible, meaning that the OS Kernel can take the Lock away from a Thread that is holding it, and give it to another Thread that is waiting for it. Another way of tackling this first condition is to use a *Timeout* when acquiring a Lock, so that if the Lock is not acquired in a specific amount of time, the Thread will give up and try again later.
+
+For tackling the second condition, we can force the Locks to be acquired in a strict order, defining a hierarchy of Locks, and making sure that every Thread acquires the Locks in the same order.
+
+All of these solutions can work, but they are not easy to implement, and they are not always possible, so the best way to avoid Deadlocks is to be very careful when using Locks, and to always think about the consequences of acquiring a Lock.
+
+:::{.callout-warning collapse="true"}
+### Implementing a Lock Hierarchy in Python
+
+In Python, the `Lock` object does not have a built-in way of defining a hierarchy of Locks, but we can implement it by ourselves. Here is an example of how to do it:
+
+```{python}
+# | echo: true
+# | code-fold: show
+import threading
+
+# Define locks
+lock_A = threading.Lock()
+lock_B = threading.Lock()
+lock_C = threading.Lock()
+
+# Create a lock hierarchy (order)
+lock_order = {"A": lock_A, "B": lock_B, "C": lock_C}
+
+
+# Function to acquire locks in order
+def acquire_locks(*locks):
+    sorted_locks = sorted(locks, key=lambda x: x[0])
+    for _, lock in sorted_locks:
+        lock.acquire()
+
+
+# Function to release locks in reverse order
+def release_locks(*locks):
+    sorted_locks = sorted(locks, key=lambda x: x[0], reverse=True)
+    for _, lock in sorted_locks:
+        lock.release()
+
+
+# Example function using the locks
+def thread_task(i):
+    # Acquire locks in the defined order
+    acquire_locks(("A", lock_A), ("B", lock_B), ("C", lock_C))
+
+    try:
+        # Critical section
+        print(f"Thread {i} is executing with all locks acquired")
+    finally:
+        # Always release locks to avoid deadlocks
+        release_locks(("A", lock_A), ("B", lock_B), ("C", lock_C))
+
+
+# Create multiple threads
+threads = []
+for i in range(5):
+    t = threading.Thread(target=thread_task, args=(i,))
+    threads.append(t)
+    t.start()
+
+# Wait for all threads to complete
+for t in threads:
+    t.join()
+
+```
+
+:::
 
 #### Priority Inversion
-
-#### Starvation
 
 ### (Off-topic) How Does Your Computer Boot?
 
