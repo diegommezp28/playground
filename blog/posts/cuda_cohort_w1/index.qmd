@@ -710,6 +710,34 @@ pirority inheritance linux
 
 ### (Off-topic) How Does Your Computer Boot?
 
+:::{.callout-warning}
+
+This is a very off-topic section, but i think it is very interesting. If you don't think so, you can skip it.
+
+:::
+
+We have been talking about Threads and Processes, OS Kernels and Schedulers, under the asumption that they are already running in your PC, but how does your computer actually get to this state? How does the push of a button in your computer actually makes it run?
+
+When you press the power button on your computer, a lot of things happen, and most of them are done by the [BIOS](https://es.wikipedia.org/wiki/BIOS) or [UEFI](https://en.wikipedia.org/wiki/UEFI) firmware, which is a very small program that is stored in a special memory chip in your motherboard, and that is executed by the CPU when you press the power button.
+
+When you power on your computer, the CPU starts executing instructions from a predefined memory location known as [the reset vector](https://en.wikipedia.org/wiki/Reset_vector). This vector typically points to a small piece of firmware stored in a ROM or flash memory chip on the motherboard. In x86 systems, this firmware is known as the BIOS (Basic Input/Output System) or UEFI (Unified Extensible Firmware Interface).
+
+ The BIOS or UEFI performs a series of hardware checks and initializations to ensure that essential components like RAM, storage devices, and peripherals are functioning correctly. It also identifies and initializes the CPU, sets up [interrupt handlers](https://en.wikipedia.org/wiki/Interrupt_handler), and performs other low-level hardware configurations.
+
+ Once the hardware initialization is complete, the BIOS/UEFI locates and loads the [boot loader](https://en.wikipedia.org/wiki/Bootloader) into memory. The boot loader is a small program responsible for loading the operating system kernel into memory and transferring control to it. In Unix-based systems, the most commonly used boot loader is [GRUB (GRand Unified Bootloader)](https://en.wikipedia.org/wiki/GNU_GRUB).
+
+ The boot loader typically resides in a specific location on the disk known as [the Master Boot Record (MBR)](https://en.wikipedia.org/wiki/Master_boot_record) or [the EFI System Partition (ESP)](https://en.wikipedia.org/wiki/EFI_system_partition) in UEFI systems. The BIOS/UEFI reads the boot loader from this location and executes it. The boot loader's main job is to locate the kernel image on the disk, load it into memory, and pass control to the kernel.
+
+ Once the boot loader transfers control to the kernel, the kernel takes over the boot process. The kernel initializes essential system components such as process management, memory management, device drivers, and file systems. It also detects and configures hardware devices that were not initialized by the BIOS/UEFI.
+
+ After initializing the kernel, the Unix-based system creates the first user-space process, known as the init process. The init process has process ID [(PID) 1](https://en.wikipedia.org/wiki/Init) and serves as the ancestor of all other processes in the system. Its primary role is to initialize the system environment, start system daemons, and maintain system services.
+
+ The init process continues the system initialization process by executing startup scripts and configuration files. These scripts set up network interfaces, mount file systems, configure system settings, and launch essential system services such as syslogd, cron, and SSH.
+
+ Once the system initialization is complete, the system typically prompts the user to log in either through a text-based login prompt or a graphical login manager, depending on the system configuration. After successful authentication, the user gains access to the system and can start using it for various tasks. 😉👌 @linux_boot_process
+
+
+
 ## Parallelism and Concurrency in Python
 
 ### The Global Interpreter Lock (GIL)
