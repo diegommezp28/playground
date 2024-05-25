@@ -740,7 +740,94 @@ When you power on your computer, the CPU starts executing instructions from a pr
 
 ## Parallelism and Concurrency in Python
 
+If you have muddle through all of this, and still don't hate me for talking too much, i appreciate it, and to your releif, we are finally going to talk about how to use all of this in Python.
+
+This section onwards is what most programmers will found useful, altghough i shall defend myself from all the talkative allegations by saying that the previous sections are very interesting and useful to understand the next ones, also, i did put a warning at the start of the blog 😅.
+
+
 ### The Global Interpreter Lock (GIL)
+
+We absolutely can not in right mind talk about concurrency in Python without talking about the [Global Interpreter Lock (GIL)](https://wiki.python.org/moin/GlobalInterpreterLock). A *'feature'* which has been probably the most controversial and discussed topic in the Python community since its creation... apart from the migration from Python 2 to Python 3, that's an ugly one too. 
+
+Rembember that Python is an interpreted language, and that the Python interpreter is a program that runs in your computer, which runs an intermidiate, platform agnostic, representation of machine code called *bytecode*, which is usually generated on the fly by the interpreter itself when executing a Python script.
+
+```{python}
+# | echo: true
+# | code-fold: show
+import dis  # <1>
+
+
+def add(a, b):
+    return a + b
+
+
+dis.dis(add)  # <2>
+
+```
+1. Import the `dis` module, which is used to disassemble Python into bytecode.
+2. Disassemble the bytecode of the `add` function.
+
+The GIL is a mutex (or lock) that protects access to the Python Interpreter, and it is used to make sure that only one Thread can execute Python code at a time. This is because the Python Interpreter is not thread-safe, meaning that it can not handle multiple Threads executing Python code at the same time without risking corruption of the Python objects and memory leaks.
+
+The reason for this incapability lies in the way Python, or at least CPython, handles memory management. Other programming languages use a technique called *Garbage Collection* to manage memory, which is a way of automatically freeing memory that is no longer in use by having a separate process that runs in the background and frees the memory when it is no longer needed, but Python uses a different technique called [*Reference Counting*](https://en.wikipedia.org/wiki/Reference_counting#:~:text=In%20computer%20science%2C%20reference%20counting,that%20are%20no%20longer%20needed.), where every Python object has a counter that keeps track of how many references to it are in the program, and when the counter reaches zero, the memory is freed.
+
+```{python}
+# | echo: true
+# | code-fold: show
+import sys
+
+a = [1, 2, 3]
+b = a
+c = a
+
+print(sys.getrefcount(a))  # <1>
+```
+1. Get the reference count of the `a` list.
+
+This is a very efficient way of managing memory, but it is not thread-safe, because if two Threads are trying to modify the reference count of the same object at the same time, the counter may get corrupted, and the memory may not be freed when it should be, leading to memory leaks and other incredibly hard to debug problems.
+
+The GIL solved it quickly and efficiently, at least for single threaded programs, but it has been a thorn in the side of Python developers for a long time, because it makes it very hard to write concurrent programs in Python, and it makes it very hard to take advantage of the multiple cores in modern CPUs.
+
+Moreover, replacing the GIL hasn't been easy, because almost every solution would involve making single threaded programs, which are the absolute vast majority of Python programs, slower, and that is not a trade-off that the Python Software Foundation is willing to make. 
+
+But i am glad to tell you that in recent years, the Python Software Foundation together with private companies like Microsoft, have been working on a way to replace the GIL without sacrificing single threaded performance. The Python Enhancement Proposal [(PEP) 703](https://peps.python.org/pep-0703/?adobe_mc=MCMID%3D80611954523217342821834267419687567177%7CMCORGID%3DA8833BC75245AF9E0A490D4D%2540AdobeOrg%7CTS%3D1716672968) describes the roadmap for a GIL-optional Python in version 3.13 with slowly making it the default by version 3.16.
+
+:::{.callout-note }
+
+Guess what is one of the official motivators listed in PEP 703 for replacing the GIL? [Deploying AI Models!!!](https://peps.python.org/pep-0703/?adobe_mc=MCMID%3D80611954523217342821834267419687567177%7CMCORGID%3DA8833BC75245AF9E0A490D4D%2540AdobeOrg%7CTS%3D1716672968#the-gil-makes-deploying-python-ai-models-difficult) 😁👌
+:::
+
+
+:::{.callout-warning collapse="false"}
+
+# Compile Python to Bytecode
+Did you know you can compile Python code to bytecode 'manually'? You can do it with the `compile` function of the `builtins` module, like so:
+
+```{python}
+# | echo: true
+# | code-fold: show
+
+code = """         # <1>
+def add(a, b):     # <1>
+    return a + b   # <1>
+
+print(f'Printing result of add(1, 2): {add(1, 2)}')   # <1>
+"""  # <1>
+
+bytecode = compile(code, "<string>", "exec")  # <2>
+
+print(bytecode)
+exec(bytecode)  # <3>
+
+```
+
+1. Define a simple Python function. Instead of a string this could have been a `.py` file.
+2. Compile the code to bytecode. This functions returns a code object.
+3. Execute the bytecode with the `exec` function.
+
+
+:::
+
 
 ### Multithreading in Python
 
