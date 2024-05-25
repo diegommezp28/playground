@@ -121,7 +121,7 @@ I am crossing my fingers so that, when you finish reading the next section, you 
 
 > **TL;DR:** Concurrency is about the structure of a program, while Parallelism is about its execution
 
-::: {.callout-warning .column-body-outset collapse="true"}
+::: {.callout-warning .column-body-outset collapse="false"}
 ## Concurrency, DAGs and Strict Partial Orders
 
 If you have a little bit more of a formal background you may have already identified that the concept of *Concurrent Structure* later presented can be precisely defined in terms of basic set theory and binary relations. In concrete, the structure of a concurrent program can be seen as a [Strict Partial Order] where the elements of the set are the tasks $t \in T$ of the program and the relation $R \subset T \times T$ is the *happens-before* relation, where $\{t, t'\} \in R$ **iff** we have that $t$ *happens-before* of $t'$. Moreover, 2 tasks $t$ and $t'$ are *Suited for parallel execution if and only if they are not comparable in the partial order* , that is, $\{t, t'\} \notin R$ and $\{t', t\} \notin R$.
@@ -400,7 +400,7 @@ When the top priority level has been given to more than one Thread, like in @fig
 
 ![Simplified Round Robing Scheduler. Source @priority_levels_1](images/round_robin.svg){#fig-round-robin width="75%"}
 
-::: {.callout-warning collapse="true"}
+::: {.callout-warning collapse="false"}
 ### Simulating a Round Robin Scheduler
 
 Round Robin is a very simple, yet effective algorithm, and we can simulate its behaviour even by hand with a toy example:
@@ -595,7 +595,7 @@ For tackling the second necessary condition, we can force the Locks to be acquir
 
 All of these solutions can work, but they are not easy to implement, and they are not always possible, so the best way to avoid Deadlocks is to be very careful when using Locks, and to always think about the consequences of acquiring a Lock.
 
-:::{.callout-warning collapse="true"}
+:::{.callout-warning collapse="false"}
 ### Implementing a Lock Hierarchy in Python
 
 In Python, the `Lock` object does not have a built-in way of defining a hierarchy of Locks, but we can implement it ourselves. Here is an example of how to do it:
@@ -676,18 +676,22 @@ Remember that the priority of threads are crucial for the scheduler to know whic
 
 The situation we just described is not *that bad*, since even if the lower priority thread is executing, it is not doing enything out of the ordinary, i mean, it was programmed to take the lock of the shared resource, and it is doing so, yes it is blocking a higher priority thread, but it is not doing anything wrong, and when it finished executing, the higher priority thread will be able to run.
 
-The really bad situation, the same that caused glitches in the mars rover back in 1997 @priority_inversion_mars_1, is when there is a medium priority thread involved, that will actually cause some unexpected behaviour of the system. 
+I want to enfatize, that when the application developer used the locks in both Thread A and C, he  knew ***in advanced*** that this very situation could happend, that is why is not *that bad*.
+
+The really bad situation, the same that caused glitches in the mars rover back in 1997 @priority_inversion_mars_1, is when there is a medium priority thread involved, that will actually cause some unexpected behaviour of the system, that the application developer never thought of.
 
 
 
 ![Priority Inversion Worst Case. Definitely breaking expected behaviour.](images/priority_inversion_3_threads.svg){#fig-priority-inversion-3-threads width="60%"}
 
-Look at @fig-priority-inversion-3-threads, first the lower priority Thread C aquires the resource the same way it did in @fig-priority-inversion, because of this the higher priority Thread A is blocked waiting for the resource to be release, but in this case, a medium priority Thread B, preempts Thread C, and starts running for as long as it wants, blocking C by priority and indirectly blocking the higher priority A. This is a very bad situation, because the system is not behaving as expected, and the higher priority Thread A is being blocked by something that was never designed to block it, leading to possible system failures.
+Look at @fig-priority-inversion-3-threads, first the lower priority Thread C aquires the resource the same way it did in @fig-priority-inversion, because of this, the higher priority Thread A is blocked waiting for the resource to be release, but in this case, a medium priority Thread B preempts Thread C, and starts running for as long as it wants, blocking C by priority and consequently, indirectly blocking the higher priority A. This is a very bad situation, because the system is not behaving as expected, and the higher priority Thread A is being blocked by something that was never designed to block it, leading to possible system failures.
 
-As we said before, this same situation caused the Mars Rover to glitch, because in its case, when the higher priority Thread was blocked for a given amount of time, the scheduler detected a failure and went into safe mode, restarting the whole system, and causing a lot of problems. @priority_inversion_mars_2.
+Let's enfatize again that this is the ***really bad*** situation because the application developer never thought of Thread B blocking Thread A, so the code will not be prepared to handle this case, and the system may fail.
+
+And this lack of preparation for the unexpected situation is what caused the Mars Rover to glitch, because in its case, when the higher priority Thread was blocked for a given amount of time, the scheduler detected a failure and went into safe mode, restarting the whole system, and causing a lot of problems. @priority_inversion_mars_2.
 
 
-OS kernles have some ways of solving this problem, like the [*Priority Inheritance*](https://en.wikipedia.org/wiki/Priority_inheritance) in linux @priority_inversion_linux and the [*Priority Ceiling*](https://en.wikipedia.org/wiki/Priority_ceiling_protocol) as described in @priority_inversion_2. The formers solves the problem by giving the priority of the higher priority thread, in our case Thread A, to the lower priority thread, Thread C, that is blocking it, and the latter solves the problem by assigning a priority to the shared resource, the Lock in our case, and making sure that the threads that are going to use it have a priority higher than the priority of the resource.  
+OS kernels have some ways of solving this problem, like the [*Priority Inheritance*](https://en.wikipedia.org/wiki/Priority_inheritance) in linux @priority_inversion_linux and the [*Priority Ceiling*](https://en.wikipedia.org/wiki/Priority_ceiling_protocol) as described in @priority_inversion_2. The former solves the problem by giving the priority of the higher priority thread, in our case Thread A, to the lower priority thread, Thread C, that is blocking it, and the latter solves the problem by assigning a priority to the shared resource, the Lock in our case, and making sure that the threads that are going to use it have a priority higher than the priority of the resource.  
 
 Other approach that is used by Windows, is [*Random Boosting*](https://en.wikipedia.org/wiki/Random_boosting) @priority_inversion_windows, which is a way of giving a random boost to the priority of the lower priority thread, so it can finish faster and the higher priority thread can run.
 
