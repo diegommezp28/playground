@@ -95,14 +95,14 @@
   edition   = {6th}
 } The reason Windows uses only two levels is that some hardware architectures that were supported in the past (such as Compaq Alpha and Silicon Graphics MIPS) implemented only two privilege levels.
  
-@misc{process_states_1, 
- place     = {Berkeley}, 
- title     = {Kernel Threads}, 
- url       = {https://inst.eecs.berkeley.edu/~cs162/fa14//}, 
- journal   = {CS162: Operating Systems and Systems Programming}, 
- publisher = {Department of Electrical Engineering and Computer Sciences UC Berkeley}, 
- author    = {Culler, David E}, 
- year      = {2014}
+@misc{process_states_1,
+  place     = {Berkeley},
+  title     = {Kernel Threads},
+  url       = {https://inst.eecs.berkeley.edu/~cs162/fa14//},
+  journal   = {CS162: Operating Systems and Systems Programming},
+  publisher = {Department of Electrical Engineering and Computer Sciences UC Berkeley},
+  author    = {Culler, David E},
+  year      = {2014}
 } 
 
 @misc{process_states_2,
@@ -114,14 +114,14 @@
   month   = {Feb}
 }
 
-@misc{priority_levels_1, 
- place     = {Wisconsin}, 
- title     = {Scheduling and CPU Scheduling}, 
- url       = {https://pages.cs.wisc.edu/~bart/537/lecturenotes/s11.html}, 
- journal   = {CS 537 Introduction to Operating Systems}, 
- publisher = {University of Wisconsin, Madison. School of Computer, Data & Information Sciences}, 
- author    = {Miler, Barton P}, 
- year      = {2018}
+@misc{priority_levels_1,
+  place     = {Wisconsin},
+  title     = {Scheduling and CPU Scheduling},
+  url       = {https://pages.cs.wisc.edu/~bart/537/lecturenotes/s11.html},
+  journal   = {CS 537 Introduction to Operating Systems},
+  publisher = {University of Wisconsin, Madison. School of Computer, Data & Information Sciences},
+  author    = {Miler, Barton P},
+  year      = {2018}
 } 
 
 @inbook{scheduler_1,
@@ -136,15 +136,105 @@
   pages     = {33–35}
 } 
 
-@misc{scheduler_2, 
- title     = {Implementation of a Multi-Queue Scheduler for Linux}, 
- url       = {https://lse.sourceforge.net/scheduling/mq1.html},
- publisher = {IBM Linux Technology Center}, 
- author    = {Kravetz, Mike and Franke, Hubertus}, 
- year      = {2001},
- edition   = {0.2}
+@misc{scheduler_2,
+  title     = {Implementation of a Multi-Queue Scheduler for Linux},
+  url       = {https://lse.sourceforge.net/scheduling/mq1.html},
+  publisher = {IBM Linux Technology Center},
+  author    = {Kravetz, Mike and Franke, Hubertus},
+  year      = {2001},
+  edition   = {0.2}
 } 
 
-@misc{scheduler_3, title={EEVDF scheduler may be ready for landing with linux 6.6}, url={https://www.phoronix.com/news/Linux-6.6-EEVDF-Likely}, journal={Phoronix}, author={Larabel, Michael}, year={2023}, month={Aug}} 
+@misc{scheduler_3,
+  title   = {EEVDF scheduler may be ready for landing with linux 6.6},
+  url     = {https://www.phoronix.com/news/Linux-6.6-EEVDF-Likely},
+  journal = {Phoronix},
+  author  = {Larabel, Michael},
+  year    = {2023},
+  month   = {Aug}
+} 
 
-@misc{scheduler_4, title={An EEVDF CPU scheduler for linux}, url={https://lwn.net/Articles/925371/}, journal={[LWN.net]}, author={Corbet, Jonathan}, year={2023}, month={Mar}} 
+@misc{scheduler_4,
+  title   = {An EEVDF CPU scheduler for linux},
+  url     = {https://lwn.net/Articles/925371/},
+  journal = {[LWN.net]},
+  author  = {Corbet, Jonathan},
+  year    = {2023},
+  month   = {Mar}
+} 
+
+@article{priority_inversion_1,
+  author     = {Lampson, Butler W. and Redell, David D.},
+  title      = {Experience with processes and monitors in Mesa},
+  year       = {1980},
+  issue_date = {Feb. 1980},
+  publisher  = {Association for Computing Machinery},
+  address    = {New York, NY, USA},
+  volume     = {23},
+  number     = {2},
+  issn       = {0001-0782},
+  url        = {https://doi.org/10.1145/358818.358824},
+  doi        = {10.1145/358818.358824},
+  journal    = {Commun. ACM},
+  month      = {feb},
+  pages      = {105–117},
+  numpages   = {13},
+  keywords   = {variable, task, synchronization, process, operating system, monitor, module, deadlock, condition, concurrency}
+}
+
+@article{priority_inversion_2,
+  author     = {Sha, L. and Rajkumar, R. and Lehoczky, J. P.},
+  title      = {Priority Inheritance Protocols: An Approach to Real-Time Synchronization},
+  year       = {1990},
+  issue_date = {September 1990},
+  publisher  = {IEEE Computer Society},
+  address    = {USA},
+  volume     = {39},
+  number     = {9},
+  issn       = {0018-9340},
+  url        = {https://doi.org/10.1109/12.57058},
+  doi        = {10.1109/12.57058},
+  abstract   = {An investigation is conducted of two protocols belonging to the priority inheritance protocols class; the two are called the basic priority inheritance protocol and the priority ceiling protocol. Both protocols solve the uncontrolled priority inversion problem. The priority ceiling protocol solves this uncontrolled priority inversion problem particularly well; it reduces the worst-case task-blocking time to at most the duration of execution of a single critical section of a lower-priority task. This protocol also prevents the formation of deadlocks. Sufficient conditions under which a set of periodic tasks using this protocol may be scheduled is derived.},
+  journal    = {IEEE Trans. Comput.},
+  month      = {sep},
+  pages      = {1175–1185},
+  numpages   = {11},
+  keywords   = {worst-case task-blocking time, uncontrolled priority inversion, real-time systems., real-time synchronization, protocols, priority inheritance protocols, priority ceiling protocol, periodic tasks, operating systems (computers), deadlocks, basic priority inheritance protocol}
+}
+
+@misc{priority_inversion_mars_1,
+  title     = {What really happened on Mars ?},
+  publisher = {University of North Carolina},
+  author    = {Reeves, Glenn E},
+  year      = {1997},
+  month     = {Dec},
+  url       = {https://www.cs.unc.edu/~anderson/teach/comp790/papers/mars_pathfinder_long_version.html}
+} 
+
+@misc{priority_inversion_mars_2,
+  url       = {https://www3.nd.edu/~cpoellab/teaching/cse40463/slides8.pdf},
+  title     = {Mars Pathfinder Incident},
+  journal   = {Mobile computing Lab - Real-Time Systems },
+  publisher = {University of Notre Dame},
+  author    = {Poellabauer, Christian}
+} 
+
+@misc{priority_inversion_linux,
+  title     = {The Linux Foundation Wiki},
+  url       = {https://wiki.linuxfoundation.org/realtime/documentation/technical_basics/pi},
+  journal   = {Priority inversion - priority inheritance},
+  publisher = {The Linux Foundation},
+  author    = {Open Source},
+  year      = {2016},
+  month     = {Jun}
+} 
+
+@misc{priority_inversion_windows,
+  title     = {Priority inversion - win32 apps},
+  url       = {https://learn.microsoft.com/en-us/windows/win32/procthread/priority-inversion?redirectedfrom=MSDN},
+  journal   = {Win32 apps | Microsoft Learn},
+  publisher = {Microsoft},
+  author    = {Bridge, Karl and Sharkey, Kent and Satran, Michael},
+  year      = {2024},
+  month     = {Mar}
+} 

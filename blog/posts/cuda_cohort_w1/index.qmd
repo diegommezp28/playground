@@ -586,24 +586,26 @@ Deadlock are situations in which 2 or more entities, in this case Threads, are w
 Illustrative representation of a Deadlock
 :::
 
-In computers this happen only if some specific properties apply to the Locks: The first one is that the Locks acquired are not preemtible, meaning that other Threads can not just take the resource away from the Thread that is holding it; the Second one is that the Locks are not acquired in a strict order, meaning that the Threads can acquire the Locks in any order they want, and the Third one is that the Threads are waiting for each other to release the resource. 
+In computers this happen only if some specific properties apply to the Locks: The first one is that the Locks acquired are not preemtible, meaning that other Threads, including the Kernel, can not just take the resource away from the Thread that is holding it; the Second one is that the Locks are not acquired in a strict order, so the case may happen in which Threads want to aquire the same set of Locks but in a different order, and the Third one is that the Threads are waiting for each other to release the resource.
 
 Given that these 3 conditions are met, the Threads will be stuck in a Deadlock, and the only way to solve it is to restart the program, or to kill the Threads that are stuck. 
-If we don't want to basically kill the programs, the only ways to solve Deadlock is by attacking one of such conditions. The first one is to make the Locks preemtible, meaning that the OS Kernel can take the Lock away from a Thread that is holding it, and give it to another Thread that is waiting for it. Another way of tackling this first condition is to use a *Timeout* when acquiring a Lock, so that if the Lock is not acquired in a specific amount of time, the Thread will give up and try again later.
+If we don't want to basically kill the programs, the only ways to solve Deadlock is by attacking one of such necessary conditions. We can attack the first one by making the Locks preemtible, such that the OS Kernel can take the Lock away from a Thread that is holding it, and give it to another Thread that is waiting for it. Another way of tackling this first condition is to use a *Timeout* when acquiring a Lock, with the intention that if the Lock is not acquired in a specific amount of time, the Thread will give up and try again later.
 
-For tackling the second condition, we can force the Locks to be acquired in a strict order, defining a hierarchy of Locks, and making sure that every Thread acquires the Locks in the same order.
+For tackling the second necessary condition, we can force the Locks to be acquired in a strict order, defining a hierarchy of Locks, and making sure that every Thread acquires the Locks in the same order.
 
 All of these solutions can work, but they are not easy to implement, and they are not always possible, so the best way to avoid Deadlocks is to be very careful when using Locks, and to always think about the consequences of acquiring a Lock.
 
 :::{.callout-warning collapse="true"}
 ### Implementing a Lock Hierarchy in Python
 
-In Python, the `Lock` object does not have a built-in way of defining a hierarchy of Locks, but we can implement it by ourselves. Here is an example of how to do it:
+In Python, the `Lock` object does not have a built-in way of defining a hierarchy of Locks, but we can implement it ourselves. Here is an example of how to do it:
 
 ```{python}
 # | echo: true
 # | code-fold: show
 import threading
+from time import sleep
+from random import random
 
 # Define locks
 lock_A = threading.Lock()
@@ -611,34 +613,34 @@ lock_B = threading.Lock()
 lock_C = threading.Lock()
 
 # Create a lock hierarchy (order)
-lock_order = {"A": lock_A, "B": lock_B, "C": lock_C}
+lock_order = {lock_A, lock_B, lock_C}
 
 
 # Function to acquire locks in order
-def acquire_locks(*locks):
-    sorted_locks = sorted(locks, key=lambda x: x[0])
-    for _, lock in sorted_locks:
+def acquire_locks():
+    sleep(random() / 10)  # Simulate context switch
+    for lock in lock_order:
         lock.acquire()
 
 
 # Function to release locks in reverse order
-def release_locks(*locks):
-    sorted_locks = sorted(locks, key=lambda x: x[0], reverse=True)
-    for _, lock in sorted_locks:
+def release_locks():
+    sleep(random() / 10)  # Simulate context switch
+    for lock in lock_order:
         lock.release()
 
 
 # Example function using the locks
 def thread_task(i):
     # Acquire locks in the defined order
-    acquire_locks(("A", lock_A), ("B", lock_B), ("C", lock_C))
+    acquire_locks()
 
     try:
         # Critical section
         print(f"Thread {i} is executing with all locks acquired")
     finally:
         # Always release locks to avoid deadlocks
-        release_locks(("A", lock_A), ("B", lock_B), ("C", lock_C))
+        release_locks()
 
 
 # Create multiple threads
@@ -656,7 +658,51 @@ for t in threads:
 
 :::
 
+
+:::{.callout-warning collapse="false"}
+
+
 #### Priority Inversion
+
+Finally, we will talk about another problem that is of concern no so much to application developers but to OS Kernel developers; Priority Inversion.
+
+This is a somewhat weird situation, first described back in the 80's in @priority_inversion_1 where you have a lower priority thread executing first and blocking a higher priority thread thanks to a resource that is being held and is impeding the higher priority thread to execute. 
+
+Remember that the priority of threads are crucial for the scheduler to know which one should run first as seen in @fig-priority-levels, so if a lower priority thread is blocking a higher priority thread, the scheduler is not doing its job properly.
+
+
+
+![Sort of Priority Inversion. Not that bad since are running as per designed.](images/priority_inversion.svg){#fig-priority-inversion width="50%"}
+
+The situation we just described is not *that bad*, since even if the lower priority thread is executing, it is not doing enything out of the ordinary, i mean, it was programmed to take the lock of the shared resource, and it is doing so, yes it is blocking a higher priority thread, but it is not doing anything wrong, and when it finished executing, the higher priority thread will be able to run.
+
+The really bad situation, the same that caused glitches in the mars rover back in 1997 @priority_inversion_mars_1, is when there is a medium priority thread involved, that will actually cause some unexpected behaviour of the system. 
+
+
+
+![Priority Inversion Worst Case. Definitely breaking expected behaviour.](images/priority_inversion_3_threads.svg){#fig-priority-inversion-3-threads width="60%"}
+
+Look at @fig-priority-inversion-3-threads, first the lower priority Thread C aquires the resource the same way it did in @fig-priority-inversion, because of this the higher priority Thread A is blocked waiting for the resource to be release, but in this case, a medium priority Thread B, preempts Thread C, and starts running for as long as it wants, blocking C by priority and indirectly blocking the higher priority A. This is a very bad situation, because the system is not behaving as expected, and the higher priority Thread A is being blocked by something that was never designed to block it, leading to possible system failures.
+
+As we said before, this same situation caused the Mars Rover to glitch, because in its case, when the higher priority Thread was blocked for a given amount of time, the scheduler detected a failure and went into safe mode, restarting the whole system, and causing a lot of problems. @priority_inversion_mars_2.
+
+
+OS kernles have some ways of solving this problem, like the [*Priority Inheritance*](https://en.wikipedia.org/wiki/Priority_inheritance) in linux @priority_inversion_linux and the [*Priority Ceiling*](https://en.wikipedia.org/wiki/Priority_ceiling_protocol) as described in @priority_inversion_2. The formers solves the problem by giving the priority of the higher priority thread, in our case Thread A, to the lower priority thread, Thread C, that is blocking it, and the latter solves the problem by assigning a priority to the shared resource, the Lock in our case, and making sure that the threads that are going to use it have a priority higher than the priority of the resource.  
+
+Other approach that is used by Windows, is [*Random Boosting*](https://en.wikipedia.org/wiki/Random_boosting) @priority_inversion_windows, which is a way of giving a random boost to the priority of the lower priority thread, so it can finish faster and the higher priority thread can run.
+
+> **TL;DR** Priority Inversion is an example of weird problems that can happen in concurrent programs, and it is a problem that is of concern to OS Kernel developers, not so much to application developers.
+
+:::
+
+<!-- cites:
+
+pathfinder 1
+pathfinder 2
+lampson and redell
+boost windows
+pirority inheritance linux
+ -->
 
 ### (Off-topic) How Does Your Computer Boot?
 

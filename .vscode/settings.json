@@ -4,5 +4,6 @@
     "quarto.mathjax.extensions": [
         "upgreek"
     ],
-    "quarto.visualEditor.markdownReferenceLinks": true
+    "quarto.visualEditor.markdownReferenceLinks": true,
+    "editor.formatOnSave": true
 }
