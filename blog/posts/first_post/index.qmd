@@ -18,7 +18,7 @@ image: images/thumbnail.jpeg
 toc: true
 comments: 
   utterances:
-    repo: diegommezp28/RL_implementations
+    repo: diegommezp28/playground
     label: blog-comments
     theme: github-dark-orange
     issue-term: pathname
