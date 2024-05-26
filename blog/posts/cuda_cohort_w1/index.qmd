@@ -1409,6 +1409,7 @@ We can now do a box plot of the results:
 
 
 :::{.column-body-outset}
+
 ```{python}
 # | echo: true
 # | code-fold: true
@@ -1447,20 +1448,31 @@ fig = go.Figure(
 
 # format the layout
 fig.update_layout(
-    xaxis=dict(zeroline=True),
-    yaxis=dict(gridcolor="white", zeroline=True),
-    paper_bgcolor="rgb(233,233,233)",
-    plot_bgcolor="rgb(233,233,233)",
-    title="Time taken for 1_000_000 iterations with different number of threads",
+    xaxis=dict(zeroline=True, gridcolor="white", showgrid=True, zerolinecolor="white", ),
+    yaxis=dict(gridcolor="white", zeroline=True, showgrid=True, zerolinecolor="white",),
+    paper_bgcolor="rgb(243,243,243)",
+    plot_bgcolor="rgb(243,243,243)",
+    title="Time Taken for One Million Iterations With Different Number of Threads",
     title_x=0.5,
     xaxis_title="Number of Threads Used",
     yaxis_title="Time (ms)",
     legend_title="Threads",
-    height=700,
+    height=700
 )
+fig.update_yaxes(minor_ticks="inside", 
+                  minor=dict(
+                    ticklen=6, 
+                    tickcolor="black", 
+                    tickmode='auto', 
+                    nticks=10, 
+                    showgrid=True
+                    )
+                )
+
 fig.show()
 
 ```
+
 :::
 
 ### Multiprocessing in Python
