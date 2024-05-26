@@ -831,7 +831,490 @@ exec(bytecode)  # <3>
 
 ### Multithreading in Python
 
+Finally, we wil see how to use threads in Python, including its synchronization primitives, things like ThreadPools, and we will do a little benchmark to show how CPU-bound multithreaded applications are heavily affected by the GIL.
+
+#### The `threading` and `concurrent.futures` Modules
+
+We have already glimpsed at some multithreading code here and there. This is a more thorough look at the `threading` module in Python.
+
+The common way to create a Thread in Python is by using the `Thread` class from the `threading` module by passing a target function to the constructor.
+Then you can start the thread by calling the `start` method, and wait for it to finish by calling the `join` method. You can also pass arguments to the target function by using the `args` parameter and keyword arguments by using the `kwargs` parameter.
+
+```{python}
+# | echo: true
+# | code-fold: show
+
+from threading import Thread
+
+def print_numbers(n):
+    for i in range(n):
+        print(i, end=" ")
+
+t = Thread(target=print_numbers, args=(5,))
+t.start()
+t.join()
+```
+
+The `Thread` class is a very low-level way of creating Threads in Python, and it is not very efficient, because creating a new Thread is a very expensive operation, and it is not very flexible, because you can not easily manage a large number of Threads, or pass data between them. 
+
+For these reasons, Python has a higher-level module called `concurrent.futures`, which provides a way of creating and managing Threads in a more efficient and flexible way.
+
+The `concurrent.futures` module provides a class for managing a pool of Threads called `ThreadPoolExecutor`, which is a subclass of the `Executor` class, and it provides a way of submitting tasks to the pool of Threads, and getting the results of the tasks when they are done.
+
+```{python}
+# | echo: true
+# | code-fold: show
+
+from concurrent.futures import ThreadPoolExecutor
+
+def print_numbers(n):
+    for i in range(n):
+        print(i, end=" ")
+
+with ThreadPoolExecutor() as executor:
+    executor.submit(print_numbers, 5)
+
+```
+
+Other way of creating multiple threads with this class is by using the `map` method, which is a way of submitting multiple tasks to the pool of Threads at once, and getting the results of the tasks when they are done.
+
+```{python}
+# | echo: true
+# | code-fold: show
+
+from concurrent.futures import ThreadPoolExecutor
+import time
+
+
+def task(n, thread_id):
+    l = []
+    for i in range(n):
+        time.sleep(0.1)
+        l.append(f"{thread_id=} {i=}")
+    return l
+
+
+with ThreadPoolExecutor() as executor:
+    results = executor.map(task, [5, 5, 5], [1, 2, 3])  # <1>
+    for result in results:
+        print(result)
+
+```
+1. The `map` method takes an iterable of arguments and an iterable of keyword arguments, and it returns an iterable of the results of the tasks.
+
+You can also get the current thread by calling the `current_thread` function from the `threading` module, and you can get the number of Threads in the pool by calling the `max_workers` attribute of the `ThreadPoolExecutor` object.
+
+```{python}
+# | echo: true
+# | code-fold: show
+
+from concurrent.futures import ThreadPoolExecutor
+from threading import current_thread
+
+def task(n):
+    print(f"{current_thread().name=} {n=}")
+    return n
+
+with ThreadPoolExecutor(max_workers=3) as executor:
+    results = executor.map(task, [1, 2, 3, 4, 5])
+    for result in results:
+        print(result)
+
+```
+You can also have data that is local to each thread  by using the `local` class from the `threading` module, which is a subclass of the `local` class from the `threading` module, and it provides a way of creating a thread-local storage, which is a way of storing data that is local to each thread.
+
+```{python}
+# | echo: true
+# | code-fold: show
+
+from threading import local, Thread
+
+
+def task(n):
+    local_data = local()  # <1>
+    local_data.value = n
+    print(f"{local_data.value=}")
+
+
+t1 = Thread(target=task, args=(1,))
+t2 = Thread(target=task, args=(2,))
+t1.start(), t2.start()
+t1.join()
+t2.join()
+
+```
+1. Create a `local` object to store data that is local to each thread.
+
+Keep in mind that in the case of the `ThreadPoolExecutor` class, the threads are reused, so the data that is local to each thread will be shared between the tasks that are executed by the same thread. For example:
+
+```{python}
+# | echo: true
+# | code-fold: show
+from concurrent.futures import ThreadPoolExecutor
+from threading import local
+import time
+local_data = local()
+
+def task_update(idx): # <1>
+    local_data.value = idx  # <1>
+    print(f"{idx=} - Updated Value - {local_data.value=}") # <1>
+    time.sleep(0.1) # <2>
+
+def task_prior(idx): # <3>
+    if hasattr(local_data, "value"): # <3>
+        print(f"{idx=} - Prior Value - {local_data.value=}") # <3>
+        time.sleep(0.1) 
+
+
+with ThreadPoolExecutor(max_workers=2) as executor:
+    executor.map(task_update, [0, 1]) # <4>
+    executor.map(task_prior, [3, 4]) # <5>
+
+```
+1. Define a function that updates the value of the `local_data` object.
+2. Sleep for a short time to simulate a context switch.
+3. Define a function that prints the value of the `local_data` object.
+4. Submit tasks to update the value of the `local_data` object. 
+5. Submit tasks to print the value of the `local_data` object.
+
+See that when calling the second batch of threads with the `task_prior` function that prints the value of the `local_data`, such value already exists and has been updated by the first batch of threads with the `task_update` function.
+
+So be careful when using the `local` class and reusing threads, because the data that is local to each thread will be shared between the tasks that are executed by the same thread.
+
+There is not much else to Thread management, so let's see how those nasty synchronization primitives work in for multithreading in Python.
+
+#### Syncronization Primitives for Multithreading in Python
+
+Python provides a number of synchronization primitives to help you manage access to shared resources in multithreaded programs. These primitives are available in the `threading` module, and they include:
+
+##### Lock
+
+A simple mutual exclusion lock that can be used to protect shared resources from being accessed by multiple threads at the same time.
+
+```{python}
+# | echo: true
+# | code-fold: show
+
+from threading import Lock, Thread
+import time
+
+lock = Lock()
+
+
+def task(n):
+    with lock: # <1>
+        for i in range(n):
+            print(i, end=" ")
+            time.sleep(0.05)
+
+
+t1 = Thread(target=task, args=(3,))
+t2 = Thread(target=task, args=(3,))
+t1.start(), t2.start()
+t1.join()
+t2.join()
+
+```
+
+1. Use a `Lock` object as a context manager to protect access to the shared resource, in this case, the whole for loop.
+
+The prior example uses a `Lock` object as a context manager, which automatically acquires the lock before entering the block and releases it when exiting the block, crucially it also handles exceptions, so the lock is always released, even if an exception is raised.
+
+You can aquire and realease a Lock manually, although it is not recommended, because it is easy to forget to release the lock, and it can lead to deadlocks. But here is the same example as before with manual lock management:
+
+```{python}
+# | echo: true
+# | code-fold: show
+
+from threading import Lock, Thread
+import time
+
+lock = Lock()
+
+
+def task(n):
+    try:
+        lock.acquire()  # <1>
+        for i in range(n):
+            print(i, end=" ")
+            time.sleep(0.05)
+    except Exception as e:
+        print(e)
+    finally:
+        lock.release()  # <2>
+
+
+t1 = Thread(target=task, args=(3,))
+t2 = Thread(target=task, args=(3,))
+t1.start(), t2.start()
+t1.join()
+t2.join()
+
+```
+
+1. Manual aquiring the lock..
+2. When manually managing locks, it is important to release the lock in a `finally` block to ensure that it is always released, even if an exception is raised.
+
+##### RLock
+
+A reentrant lock that can be acquired multiple times by the same thread.
+
+```{python}
+# | echo: true
+# | code-fold: show
+
+from threading import RLock
+
+
+class RecursiveCounter:
+    def __init__(self):
+        self.count = 0
+        self.lock = RLock()
+
+    def increment(self, times):
+        with self.lock:
+            if times > 0:
+                self.count += 1
+                self.increment(times - 1)  # <1>
+
+
+# Create a RecursiveCounter instance
+counter = RecursiveCounter()
+
+# Increment the counter recursively
+counter.increment(5)
+
+# Print the final count
+print("Counter final value:", counter.count)
+
+```
+
+1. Recursively call the `increment` method. With a normal `Lock` this would cause a deadlock.
+
+
+##### Semaphore 
+A counter that can be used to control access to a shared resource by a fixed number of threads.
+
+```{python}
+# | echo: true
+# | code-fold: show
+
+from threading import Semaphore, Thread
+import time
+
+# Create a semaphore that allows up to two threads to enter a section of code at once
+semaphore = Semaphore(2) # <1>
+
+def thread_function(num): # <2>
+    print(f"Thread {num} is waiting for the semaphore") # <2>
+    with semaphore: # <2>
+        print(f"Thread {num} has acquired the semaphore") # <2>
+        time.sleep(0.05)  # Simulate some work # <2>
+    print(f"Thread {num} has released the semaphore") # <2>
+
+# Create 5 threads that will each try to acquire the semaphore
+threads = [Thread(target=thread_function, args=(i,)) for i in range(5)]
+
+# Start all threads
+for t in threads:
+    t.start()
+
+# Wait for all threads to finish
+for t in threads:
+    t.join()
+
+```
+
+1. Create a semaphore that allows up to two threads to enter a section of code at once.
+2. Use the semaphore as a context manager to control access to the shared resource.
+
+##### Event
+
+A simple way to communicate between threads using a flag that can be set or cleared.
+
+
+```{python}
+# | echo: true
+# | code-fold: show
+
+from threading import Event, Thread
+import time
+
+# Create an Event object
+event = Event() # <3>
+
+def waiting_thread(): # <1>
+    print("Waiting for the event to be set") # <1>
+    event.wait()  # <1>
+    print("The event has been set, proceeding") # <1>
+
+def setting_thread(): # <2>
+    time.sleep(0.05)  # Simulate some work # <2>
+    print("Setting the event") # <2>
+    event.set() # <2>
+
+# Create the threads
+t1 = Thread(target=waiting_thread)
+t2 = Thread(target=setting_thread)
+
+# Start the threads
+t1.start()
+t2.start()
+
+# Wait for both threads to finish
+t1.join()
+t2.join()
+
+```
+
+1. The `waiting_thread` function waits for the event to be set before proceeding
+2. The `setting_thread` function sets the event after a delay.
+3. The `Event` object allows these two threads to synchronize their actions.
+
+
+An Event is a simple synchronization object; the main methods are `set()` and `clear()`. If the Event is set, `wait()` doesn't do anything. If the Event is not set, `wait()` will block until the Event is set.
+
+##### Condition
+
+A more advanced synchronization primitive that allows threads to wait for a condition to be met before proceeding.
+
+```{python}
+# | echo: true
+# | code-fold: show
+
+from threading import Condition, Thread
+
+# Create a Condition object
+condition = Condition()
+
+
+def consumer_thread():  # <1>
+    with condition:  # <1>
+        print("Consumer: Waiting for the condition to be met")  # <1>
+        condition.wait()  # <1>
+        print("Consumer: The condition has been met, proceeding")  # <1>
+
+
+def producer_thread():  # <2>
+    with condition:  # <2>
+        print("Producer: Making the condition true")  # <2>
+        condition.notify_all()  # <2>
+
+
+# Create the threads
+t1 = Thread(target=consumer_thread)
+t2 = Thread(target=producer_thread)
+
+# Start the threads
+t1.start()
+t2.start()
+
+# Wait for both threads to finish
+t1.join()
+t2.join()
+
+``` 
+1. The `consumer_thread` function waits for the condition to be met before proceeding.
+2. The `producer_thread` function sets the condition and notifies the waiting threads.
+
+
+A `Condition` object allows one or more threads to wait until they are notified by another thread.
+
+##### Barrier
+
+A synchronization primitive that allows a fixed number of threads to wait for each other at a barrier before proceeding.
+  
+```{python}
+# | echo: true
+# | code-fold: show
+
+from threading import Barrier, Thread
+
+# Create a Barrier for three threads
+barrier = Barrier(3)
+
+def worker_thread(num): # <1>
+    print(f"Thread {num} is doing some work") # <1>
+    # Simulate work with a sleep # <1>
+    time.sleep(num/10) # <1>
+    print(f"Thread {num} is waiting at the barrier") # <1>
+    barrier.wait() # <1>
+    print(f"Thread {num} is proceeding")  # <1>
+
+# Create three worker threads
+threads = [Thread(target=worker_thread, args=(i,)) for i in range(3)]
+
+# Start all threads
+for t in threads:
+    t.start()
+
+# Wait for all threads to finish
+for t in threads:
+    t.join()
+
+```
+
+1. The `worker_thread` function simulates work and waits at the barrier before proceeding.
+
+##### Queue
+
+A thread-safe queue that can be used to pass messages between threads.
+
+```{python}
+# | echo: true
+# | code-fold: show
+
+from threading import Thread
+from queue import Queue
+
+# Create a Queue object
+q = Queue()
+
+def producer_thread(): # <1>
+    for i in range(5): # <1>
+        q.put(i) # <1>
+        print(f"Produced: {i}") # <1>
+
+def consumer_thread(): # <2>
+    while True: # <2>
+        item = q.get() # <2>
+        if item is None: # <2>
+            break # <2>
+        print(f"Consumed: {item}") # <2>
+
+# Create the threads
+t1 = Thread(target=producer_thread)
+t2 = Thread(target=consumer_thread)
+
+# Start the threads
+t1.start()
+t2.start()
+
+# Wait for the producer thread to finish
+t1.join()
+
+# Signal the consumer thread to stop
+q.put(None) # <3>
+
+# Wait for the consumer thread to finish
+t2.join()
+
+```
+
+1. The `producer_thread` function puts items into the queue.
+2. The `consumer_thread` function gets items from the queue and processes them.
+3. The `None` item is used to signal the consumer thread to stop, if this is not done, the consumer thread will block indefinitely.
+
+So we can have fun with all of these synchronization primitives, but the cases for multithreading in Python are very specific, thank to the GIL. In general, CPU-bound tasks, which are those that require a lot of computation, are not a good fit for multithreading in Python, because the GIL will prevent the threads from running in parallel, and the performance will be worse than using a single thread.
+
+Let's see a simple example of performance degradation when using multithreading for a CPU-bound task in Python.
+
+#### Benchmarking Multithreading in Python in a CPU-Bound Task
+
+
+
 ### Multiprocessing in Python
+
 
 ### Asynchronous Programming in Python
 
