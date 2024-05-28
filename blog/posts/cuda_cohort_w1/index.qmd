@@ -1708,7 +1708,7 @@ Sadly, measurement of context switches per thread is not possible with the `psut
 
 
 :::{.callout-warning collapse="false"}
-# Measuring Context Switches Per Thread
+# Counting Context Switches Per Thread in Python
 
 For the sake of completeness, i will show what would be required to measure the context switches per thread in Unix systems, together with some hacks to get the best info possible in Windows systems... at least the best i could find.
 
@@ -1742,9 +1742,181 @@ Quite simple indeed, but very effective.
 
 ## Windows Systems
 
+For Windows we basically need to do black magic to get the number of context switches per thread per second, yes per second, because the Windows API only provides the information in this way.
 
+In this case we will exploit `Performance Counters` to get the number of context switches per thread per second. We need to use various of these counters, since the one we cared about does not used process ids and thread ids, but rather process names and instances, weird concepts that ***can***, with some extra work, be mapped to the process ids and thread ids that we have in Python.
+
+Performance Counters are a series of windows API functions that allow us to get a lot of information about the system, like CPU usage, memory usage, disk usage, etc. In our case the performance counter we are interested in is the `Context Switches/sec` counter. For accessing these counters, we need to specify a `counter path` that is a string that tells the API where to find the counter we are interested in.
+
+The general format of the counter path is `\\Computer\PerfObject(ParentInstance/ObjectInstance#InstanceIndex)\Counter`, where:
+
+-   `Computer` is the name of the computer we want to get the information from, in our case it will be the local computer.
+-   `PerfObject` is the name of the performance object we are interested in, in our case it will be `Thread`, although, as said before, we need extra info to know **which thread**.
+-   `Counter` is the name of the counter we are interested in, in our case it will be `Context Switches/sec`.
+
+
+That extra info we need is the `ParentInstance/ObjectInstance#InstanceIndex` part of the path. This is an alternative way that windows have to index threads, for example, in my machine i can list all Python thread identifiers as follows:
+
+```{python}
+# | echo: true
+# | code-fold: show
+# | eval: False
+
+import win32pdh
+import re
+
+pattern = r'python\/\d+#?\d?' # <1>
+
+python_threads = [re.findall(pattern, s)[0] for s in win32pdh.ExpandCounterPath('\\Thread(*)\\ID Thread') if 'python' in s]
+
+print(python_threads) # <3>
+```
+
+1. This Regular expression will match all the python thread identifiers in the format `python/[instance]#[index]` and also `python/[instance]`.
+2. We are listing all possible thread identifiers for the python process.
+3. I've actually deactivated code execution for these examples since they are platform dependant and sometimes i render my documents in other platforms.
+
+In the case of my Windows computer what the prior cell would print is something like:
+
+> `['python/0#6', 'python/1#5', 'python/2#5', 'python/3#5', 'python/0#5', 'python/1#4', 'python/2#4', 'python/3#4', ...., 'python/27', 'python/0', 'python/1', 'python/2', 'python/3']`
+
+The task is now to decifer which of these identifiers corresponds to the current thread id and process id.
+
+To do so we can use the `win32pdh` module again, which is a Python wrapper around the Windows Performance Data Helper (PDH) API. This API allows us to access performance counters in Windows. And we will first need to use the `ID Process` and `ID Thread` counters to get the process id and thread id for each thread
+
+Let's define a function that returns the `pid` and `tid` for a given parent and instance:
+
+
+```{python}
+# | echo: true
+# | code-fold: show
+# | eval: False
+
+import win32pdh
+
+def get_pid_tid(parent, instance):
+    """
+    Get the Process ID (PID) and Thread ID (TID) for a given parent and instance.
+
+    Parameters:
+    parent (int): The parent value.
+    instance (int): The instance value.
+
+    Returns:
+    tuple: A tuple containing the Process ID (PID) and Thread ID (TID).
+
+    Raises:
+    Exception: If there is an error while getting the counter data.
+    """
+
+    pid_path = f"\\Thread({parent}/{instance})\\ID Process"
+    tid_path = f"\\Thread({parent}/{instance})\\ID Thread"
+
+    query_handle = win32pdh.OpenQuery()
+    pid_handle = win32pdh.AddCounter(query_handle, pid_path)
+    tid_handle = win32pdh.AddCounter(query_handle, tid_path)
+
+    try:
+        win32pdh.CollectQueryData(query_handle)
+        _, pid = win32pdh.GetFormattedCounterValue(pid_handle, win32pdh.PDH_FMT_LONG)
+        _, tid = win32pdh.GetFormattedCounterValue(tid_handle, win32pdh.PDH_FMT_LONG)
+    except Exception as e:
+        print(f"Failed to get counter data: {e}")
+        pid = None
+
+    win32pdh.CloseQuery(query_handle)
+    return pid, tid
+
+```
+
+Now we can associate the process ids and thread ids with the thread identifiers we got before and check which identifier is the one for the current pid and tid
+
+```{python}
+# | echo: true
+# | code-fold: show
+# | eval: False
+from multiprocessing import current_process
+from threading import current_thread
+
+current_pid = current_process().pid
+current_tid = current_thread().ident
+
+
+threads_info = {}
+current_thread_info = None
+
+for t in python_threads:
+    parent, instance = t.split("/")
+    pid, tid = get_pid_tid(parent, instance)
+    threads_info[t] = dict(pid=pid, tid=tid)
+
+    if pid == current_pid and tid == current_tid:
+        current_thread_info = dict(parent=parent, instance=instance, pid=pid, tid=tid)
+
+print(current_thread_info)
+```
+
+The time i executed the prior code in my Windows machine, the info for the current thread was found to be:
+
+> `{'parent': 'python', 'instance': '0#5', 'pid': 27884, 'tid': 30752}`
+
+This was the final piece of the puzzle we needed. Calculate the context switches per second of our thread has become possible with the use of the following function:
+
+
+```{python}
+# | echo: true
+# | code-fold: show
+# | eval: False
+
+import win32pdh
+
+
+import win32pdh
+import win32api
+import time
+
+def get_thread_context_switches(parent, instance):
+    query_handle = win32pdh.OpenQuery()
+    
+    # Performance counter path for context switches of a specific thread
+    path = f"\\Thread({parent}/{instance})\\Context Switches/sec"
+    counter_handle = win32pdh.AddCounter(query_handle, path)
+    
+    try:
+        win32pdh.CollectQueryData(query_handle)
+        for i in range(1_000_000):
+          pass # Simulate some work in here # <1>
+        win32pdh.CollectQueryData(query_handle)
+        _, value = win32pdh.GetFormattedCounterValue(counter_handle, win32pdh.PDH_FMT_LONG)
+    except Exception as e:
+        print(f"Failed to get counter data: {e}")
+        value = None
+    
+    win32pdh.CloseQuery(query_handle)
+    return value
+
+```
+1. In a real world scenario we would do some productive stuff in here.
+
+
+By calling `get_thread_context_switches` we can get the number of context switches per second for our thread.
+
+```{python}
+# | echo: true
+# | code-fold: show
+# | eval: False
+
+parent, instance = current_thread_info["parent"], current_thread_info["instance"]
+context_switches = get_thread_context_switches(parent, instance)
+print(context_switches)
+```
+
+> When i executed this cell in my Windows pc it printed `80` the first time and `120` the second time, then i got bored :p. Two data points for you, that is more than what you started with ;D
+
+And, again, ***just like that***, we have the number of context switches per second for our running thread.
 
 :::
+
 
 ### Multiprocessing in Python
 
