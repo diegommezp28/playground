@@ -42,7 +42,7 @@ filters:
   - parse-latex
   
 resources: 
-  - resources/threading_benchmark.parquet
+  - resources/*.parquet
 ---
 
 ::: callout-important
@@ -1018,7 +1018,7 @@ See that when calling the second batch of threads with the `task_prior` function
 
 So be careful when using the `local` class and reusing threads, you may find yourself with unexpected results if handled incorrectly.
 
-This is the basics of Thread creation and management in Python. Is actually surprisingly simple, but very powerful. Where things start to get complicated is when you start to use multiple threads to access shared resources, so it becomes a neccesity to use synchronization primitives to avoid race conditions.
+This is the basics of Thread creation and management in Python. Is actually surprisingly simple, but very powerful. Where things start to get complicated is when you start to use multiple threads to access shared resources, so it becomes a necesity to use synchronization primitives to avoid race conditions.
 
 We will see how to use these primitives in the next section.
 
@@ -1454,7 +1454,7 @@ fig.update_layout(
     paper_bgcolor="rgb(246,246,246)",
     plot_bgcolor="rgb(246,246,246)",
     title=dict(
-      text="<b>Time Taken for One Million Iterations With Different Number of Threads</b>",
+      text="<b>Time Taken for One Million Iterations<br>With Different Number <br>of Threads</b>",
       x=0.5, 
       y=0.95,
       font=dict(
@@ -1483,7 +1483,7 @@ fig.update_layout(
 )
 fig.update_yaxes(minor_ticks="inside",
                   minor=dict(
-                    ticklen=10, 
+                    ticklen=6, 
                     tickcolor="black", 
                     tickmode='auto', 
                     nticks=10, 
@@ -1494,6 +1494,257 @@ fig.update_yaxes(minor_ticks="inside",
 fig.show(config={"responsive": True})
 
 ```
+
+It's clear now that for a CPU-bound task, multithreading in Python undermines performance. The theory is that with more threads in Python, there will not be parallelism because of the GIL,but, given that we increase the number of threads wanting to acces the CPU and acquire the GIL, the overhead of context switching between threads will increase, and the performance will degrade.
+
+There is a nice way of testing this theory with hard data. We can use the `psutil` library to count the number of context switches per process and try to find the correlation between this number and the time taken to complete the tasks for each group of threads.
+
+
+For such endevour, we just need a small modification of the prior code, to not only measure the time taken for each number of threads, but also the number of context switches per process.
+
+```{python}	
+# | echo: true
+# | code-fold: show
+# | eval: False
+
+from time import perf_counter_ns # High resolution timer
+from concurrent.futures import ThreadPoolExecutor
+import pandas as pd
+import psutil
+
+def task(n): # <1>
+    start_time = perf_counter_ns()
+    for _ in range(1_000_000 // n): # Each thread will do 1_000_000 // n iterations (Perfectly splitting the work)
+        pass
+    end_time = perf_counter_ns()
+    ellapsed_ms = (end_time - start_time) / 1_000_000
+    return ellapsed_ms # <1>
+
+
+N_REPETITIONS = 50
+MAX_NUM_THREADS = 30
+
+data = {}
+process = psutil.Process()
+
+with ThreadPoolExecutor(max_workers=MAX_NUM_THREADS) as executor:
+    for n in range(1, MAX_NUM_THREADS + 1):
+        l = []
+        switches = []
+        for _ in range(N_REPETITIONS):
+            init_ctx_switches = process.num_ctx_switches() # <2>
+            init_ctx_switches = init_ctx_switches.voluntary + init_ctx_switches.involuntary # <2>
+            partial_times = list(executor.map(task, [n] * n)) # Run the task n times
+            end_ctx_switches = process.num_ctx_switches() # <3>
+            end_ctx_switches = end_ctx_switches.voluntary + end_ctx_switches.involuntary # <3>
+            ctx_switches = end_ctx_switches - init_ctx_switches # <4>
+            total_time = sum(partial_times)
+            l.append(total_time)
+            switches.append(ctx_switches)
+        data[str(n)] = l
+        data[f"{n}_ctx_switches"] = switches # <5>
+    
+
+df = pd.DataFrame(data)
+df.to_parquet('threading_benchmark_ctx_switches.parquet')
+
+```
+1. This will remain the same as before. The measurement won't happen here, since we can only do process-scoped measurements with `psutil`.
+2. We will measure the number of context switches of the running process before the execution of our taks.
+3. We will measure the number of context switches of the running process after the execution of our taks.
+4. The difference between the two will give us the number of context switches that our task caused.
+5. We will add this information to the dataframe.
+
+With this information, we can calculate the pearson correlation between the time taken for each number of threads and the number of context switches caused by each number of threads.
+
+```{python}
+# | echo: true
+# | code-fold: true
+# | eval: True
+
+import pandas as pd
+import plotly.graph_objects as go
+import numpy as np
+
+df = pd.read_parquet("resources/threading_benchmark_ctx_switches.parquet")
+NUM_THREADS = df.shape[1] // 2
+
+corrs = []
+for n in range(1, NUM_THREADS + 1):
+    corrs.append(df[str(n)].corr(df[f"{n}_ctx_switches"]))
+
+x = np.arange(1, len(corrs) + 1)
+mean_corr = np.mean(corrs)
+
+fig = go.Figure(data=go.Scatter(x=x, y=corrs, mode='lines+markers',))
+fig.add_hline(y=mean_corr, line_dash="dot",
+              annotation_text=f"<b>Mean Correlation<br>{mean_corr:.3f}</b>", 
+              annotation_position="bottom right",
+              annotation_font_size=16
+              )
+fig.update_layout(
+    boxgap=0.3,
+    boxmode='group',
+    xaxis=dict(zeroline=True, gridcolor="white", showgrid=True, zerolinecolor="white", ),
+    yaxis=dict(gridcolor="white", zeroline=True, showgrid=True, zerolinecolor="white"),
+    title=dict(
+      text="<b>Correlation of<br>Time and Context Switches</b>",
+      x=0.5, 
+      y=0.93,
+      font=dict(
+        family="Times New Roman, serif",
+        size=24),
+      ),
+    xaxis_title="Number of Threads Used",
+    yaxis_title="Pearson Correlation Coefficient",
+    margin=dict(l=40, r=20, t=80, b=40),
+    font=dict(family="Times New Roman, serif", size=16)
+
+
+)
+fig.update_yaxes(minor_ticks="inside",
+                  minor=dict(
+                    ticklen=6, 
+                    tickcolor="black", 
+                    tickmode='auto', 
+                    nticks=6, 
+                    showgrid=True
+                    )
+                )
+fig.show(config={"responsive": True})
+```
+
+Even with the noise of not having data per thread, the correlation is quite clear, the more threads you use, the more context switches you will have, and the more context switches you have, the more time it will take to complete the task.
+
+Look at the following graph for an in-depth final look at our data:
+
+
+```{python}
+# | echo: true
+# | code-fold: true
+# | column: screen-inset-shaded
+
+import plotly.express as px
+import plotly.graph_objs as go
+
+def flatten_data(df):
+    flattened_data = []
+    for key in df.keys():
+        data_type = "Thread"
+        if key.endswith("_ctx_switches"):
+            data_type = "Context Switches"
+        idx = key.split("_")[0]
+        for value in df[key]:
+            flattened_data.append({"Thread": idx, "Value": value, "Type": data_type})
+    return pd.DataFrame(flattened_data)
+
+# df = pd.read_parquet("resources/threading_benchmark_ctx_switches.parquet")
+flattened_df = flatten_data(df)
+
+threads_df = flattened_df[flattened_df.Type == "Thread"]
+ctx_switches_df = flattened_df[flattened_df.Type == "Context Switches"]
+
+threads_data = go.Box(x=threads_df["Thread"], y=threads_df["Value"], name="Time<br>Taken", boxmean=True)
+ctx_switches_data = go.Box(x=ctx_switches_df["Thread"], y=ctx_switches_df["Value"], name="Context<br>Switches", boxmean=True, yaxis="y2")
+fig = go.Figure(data=[threads_data, ctx_switches_data])
+fig.update_traces(quartilemethod="inclusive", boxmean=True) 
+fig.update_layout(
+    boxgap=0.2,
+    boxmode='group',
+    xaxis=dict(zeroline=True, gridcolor="white", showgrid=True, zerolinecolor="white", ),
+    yaxis=dict(gridcolor="white", zeroline=True, showgrid=True, zerolinecolor="white"),
+    paper_bgcolor="rgb(248,248,248)",
+    plot_bgcolor="rgb(248,248,248)",
+    title=dict(
+      text="<b>Visual Correlation of<br>Time Taken vs Context Switches</b>",
+      x=0.48, 
+      y=0.95,
+      font=dict(
+        family="Times New Roman, serif",
+        size=24),
+      ),
+    xaxis_title="Number of Threads Used",
+    yaxis_title="Time (ms)",
+    margin=dict(l=40, r=40, t=40, b=40),
+    font=dict(family="Times New Roman, serif", size=16),
+    height=650,
+    width=None,
+    yaxis2=dict(
+        title="Number of Context Switches",
+        overlaying="y",
+        side="right",
+        showgrid=False,
+        zeroline=False,
+        type="log"
+    )
+
+
+)
+fig.update_yaxes(minor_ticks="inside",
+                  minor=dict(
+                    ticklen=6, 
+                    tickcolor="black", 
+                    tickmode='auto', 
+                    nticks=10, 
+                    showgrid=True
+                    ),
+                    type="log"
+                )
+fig.show(config={"responsive": True})
+
+
+
+```
+
+
+
+:::{.callout-note}
+
+Ideally, we should measure the number of context switches ***per Thread*** not per process like we do with `psutil`. The reason is quite simple, with the prior method context switches from the main Python thread are also counted, dispite the fact that we are only interested in the context switches of the threads we created. This extra count will just add noise to our measurements.
+
+Sadly, measurement of context switches per thread is not possible with the `psutil` library. Although in Unix based systems would be quite straightforward to do a small custom code to get those numbers, tanks to the `/proc` filesystem, which diligently puts all the info we need in a single file per thread that we can open and read. In Windows, though, the necessary steps are **waaaaay** more complicated and the result not nearly as good as in Unix systems.
+
+:::
+
+
+:::{.callout-warning collapse="false"}
+# Measuring Context Switches Per Thread
+
+For the sake of completeness, i will show what would be required to measure the context switches per thread in Unix systems, together with some hacks to get the best info possible in Windows systems... at least the best i could find.
+
+Altough, i will warn now that i will not reproduce the prior results with these new measurement methods, since it would be a lot of extra platform-dependant code and not very useful for the main point of this section, which has already been established.
+
+## Unix Systems
+
+In Unix systems, we can get the number of context switches per thread by reading the `/proc/[pid]/task/[tid]/status` file, where `[pid]` is the process id and `[tid]` is the thread id.
+
+In this file we can find the number of voluntary and involuntary context switches for each thread.
+
+Here is a simple Python function that reads the `/proc/[pid]/task/[tid]/status` file and returns the number of voluntary and involuntary context switches for a given thread:
+
+```{python}
+# | echo: true
+# | code-fold: show
+# | eval: False
+
+def get_context_switches_per_thread(pid, tid):
+    with open(f"/proc/{pid}/task/{tid}/status") as f:
+        for line in f:
+            if line.startswith("voluntary_ctxt_switches"):
+                voluntary = int(line.split()[1])
+            elif line.startswith("nonvoluntary_ctxt_switches"):
+                involuntary = int(line.split()[1])
+    return voluntary, involuntary
+
+```
+
+Quite simple indeed, but very effective.
+
+## Windows Systems
+
+
+
+:::
 
 ### Multiprocessing in Python
 
