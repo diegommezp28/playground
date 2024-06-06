@@ -9,6 +9,9 @@ format:
     code-fold: true
     code-summary: "Show source"
     code-copy: true
+    code-line-numbers: false
+    code-block-bg: true
+    code-block-border-left: "#31BAE9"
     smooth-scroll: false
     html-math-method: katex
     highlight-style: pygments
@@ -345,9 +348,7 @@ Access to CPU is quite valuable, most Threads usually want it, so the OS Kernel 
 
 Processes in modern OSs fall in one of, usually, 5 states, commomly known as the *5 State Model*. These states are: Init, Ready, Running, Waiting and Finished. @process_states_1
 
-![5 State Model. From @process_states_1]
-
-  [5 State Model. From @process_states_1]: images/5_state_model.svg {#fig-5-state-model width="85%"}
+![5 State Model. From @process_states_1](images/5_state_model.svg){#fig-5-state-model width="85%"}
 
 ::: callout-note
 The *5 State Model* is an asbtraction and simplification of the actual states. For example, the Linux Kernel implements de following states: `TASK_RUNNING`, `TASK_INTERRUPTIBLE`, `TASK_UNINTERRUPTIBLE`, `TASK_STOPPED`, `TASK_ZOMBIE`. @process_states_2
@@ -379,9 +380,7 @@ Modern Schedulers are preemptive, and they usually use **Priority Queues** and *
 
 The Priority level is how the Scheduler assigns importance to all the Threads that are ready to run. The Thread with the highest priority level will be the one schedule to run next, and the Scheduler will modify the priority level of the Threads as they run, to give execution time to all of them and to ensure that no Thread is left behind.
 
-![Simplified Priority Levels. Source @priority_levels_1]
-
-  [Simplified Priority Levels. Source @priority_levels_1]: images/priority_levels.svg {#fig-priority-levels width="85%"}
+![Simplified Priority Levels. Source @priority_levels_1](images/priority_levels.svg ){#fig-priority-levels width="85%"}
 
 The very specifics of the modifications and updates of priority levels vary by OS kernel implementations. For example, the linux kernel scheduler has been implemented with the [CFS or Completely Fair Scheduler] for the last 15 years, it utilizes a [Red-Black Tree] to store the Threads, and it uses the [Virtual Runtime] of the Threads to calculate the priority level.
 
@@ -1215,7 +1214,7 @@ t2.join()
 
 An Event is a simple synchronization object; the main methods are `set()` and `clear()`. If the Event is set, `wait()` doesn't do anything. If the Event is not set, `wait()` will block until the Event is set.
 
-With this primitive, some thread can control the execution flow of another thread, by setting or clearing the Event. Can be usefull when you have a thread that is waiting for some other thread to finished something, like if one is going to read from a file but the other has not finished writing to it.
+With this primitive, some thread can control the execution flow of another thread, by setting or clearing the Event. Can be usefull when you have a thread that is waiting for some other thread to finish something, like if one is going to read from a file but the other has not finished writing to it.
 
 ##### Condition
 
@@ -1352,20 +1351,20 @@ t2.join()
 2.  The `consumer_thread` function gets items from the queue and processes them.
 3.  The `None` item is used to signal the consumer thread to stop, if this is not done, the consumer thread will block indefinitely.
 
-So we can have fun with all of these synchronization primitives, but the cases for multithreading in Python are very specific, thank to the GIL. In general, CPU-bound tasks, which are those that require a lot of computation, are not a good fit for multithreading in Python, because the GIL will prevent the threads from running in parallel, and the performance will be worse than using a single thread.
+So we can have fun with all of these synchronization primitives, but the cases for multithreading in Python are very specific, thank to the GIL. In general, CPU-bound tasks, which are those that spend most of their time actually doing computation in the CPU, are not a good fit for multithreading in Python, because the GIL will prevent the threads from running in parallel, and the performance will be worse than using a single thread.
 
 Let's see a simple example of performance degradation when using multithreading for a CPU-bound task in Python.
 
 #### Benchmarking Multithreading in Python in a CPU-Bound Task
 
-In this eval we will compare execution times of a dumb CPU-bound task (iteration a million times) when doing all the work in one Thread versus splitting the work in multiple Threads.
+In this eval we will compare execution times of a dumb CPU-bound task (one million iterations) when doing all the work in one Thread versus splitting the work in multiple Threads.
 
 ```{python}
 # | echo: true
 # | code-fold: show
 # | eval: False
 
-from time import perf_counter_ns # Really high resolution timer
+from time import perf_counter_ns # High resolution timer
 from concurrent.futures import ThreadPoolExecutor
 import pandas as pd
 
@@ -1495,7 +1494,7 @@ fig.show(config={"responsive": True})
 
 ```
 
-It's clear now that for a CPU-bound task, multithreading in Python undermines performance. The theory is that with more threads in Python, there will not be parallelism because of the GIL,but, given that we increase the number of threads wanting to acces the CPU and acquire the GIL, the overhead of context switching between threads will increase, and the performance will degrade.
+It's clear now that for a CPU-bound task, multithreading in Python undermines performance. The theory is that with more threads in Python, there will not be parallelism because of the GIL, but, given that we increase the number of threads wanting to acces the CPU and acquire the GIL, the overhead of context switching between threads will increase, and the performance will degrade.
 
 There is a nice way of testing this theory with hard data. We can use the `psutil` library to count the number of context switches per process and try to find the correlation between this number and the time taken to complete the tasks for each group of threads.
 
@@ -1546,7 +1545,7 @@ with ThreadPoolExecutor(max_workers=MAX_NUM_THREADS) as executor:
     
 
 df = pd.DataFrame(data)
-df.to_parquet('threading_benchmark_ctx_switches.parquet')
+df.to_parquet('resources/threading_benchmark_ctx_switches.parquet')
 
 ```
 1. This will remain the same as before. The measurement won't happen here, since we can only do process-scoped measurements with `psutil`.
@@ -1555,7 +1554,7 @@ df.to_parquet('threading_benchmark_ctx_switches.parquet')
 4. The difference between the two will give us the number of context switches that our task caused.
 5. We will add this information to the dataframe.
 
-With this information, we can calculate the pearson correlation between the time taken for each number of threads and the number of context switches caused by each number of threads.
+With this information, we can calculate [Pearson's correlation](https://en.wikipedia.org/wiki/Pearson_correlation_coefficient) between the time taken for each group of threads and the number of context switches caused reported by the parent process of all those threads.
 
 ```{python}
 # | echo: true
@@ -1700,9 +1699,9 @@ fig.show(config={"responsive": True})
 
 :::{.callout-note}
 
-Ideally, we should measure the number of context switches ***per Thread*** not per process like we do with `psutil`. The reason is quite simple, with the prior method context switches from the main Python thread are also counted, dispite the fact that we are only interested in the context switches of the threads we created. This extra count will just add noise to our measurements.
+Ideally, we should measure the number of context switches ***per Thread*** not per process like we do with `psutil`. The reason is quite simple, with the prior method, context switches from the main Python thread are also counted, dispite the fact that we are only interested in the context switches of the threads we created. This extra count will just add noise to our measurements.
 
-Sadly, measurement of context switches per thread is not possible with the `psutil` library. Although in Unix based systems would be quite straightforward to do a small custom code to get those numbers, tanks to the `/proc` filesystem, which diligently puts all the info we need in a single file per thread that we can open and read. In Windows, though, the necessary steps are **waaaaay** more complicated and the result not nearly as good as in Unix systems.
+Sadly, measurement of context switches per thread is not possible with the `psutil` library. Although, in Unix based systems it would be quite straightforward to do a small custom code to get those numbers, thanks to the `/proc` filesystem, where the kernel diligently puts all the info we need in a convenient single file per thread, that we can open and read. In Windows, though, the necessary steps are **waaaaay** more complicated and the result not nearly as good as in Unix systems.
 
 :::
 
@@ -1712,7 +1711,7 @@ Sadly, measurement of context switches per thread is not possible with the `psut
 
 For the sake of completeness, i will show what would be required to measure the context switches per thread in Unix systems, together with some hacks to get the best info possible in Windows systems... at least the best i could find.
 
-Altough, i will warn now that i will not reproduce the prior results with these new measurement methods, since it would be a lot of extra platform-dependant code and not very useful for the main point of this section, which has already been established.
+Altough, i will warn now that i shall not reproduce the prior results with these new measurement methods, since it would be a lot of extra platform-dependant code and not very useful for the main point of this section, which has already been established.
 
 ## Unix Systems
 
@@ -1742,11 +1741,11 @@ Quite simple indeed, but very effective.
 
 ## Windows Systems
 
-For Windows we basically need to do black magic to get the number of context switches per thread per second, yes per second, because the Windows API only provides the information in this way.
+For Windows we basically need to do black magic to get the number of context switches per thread per second, yes per second, because the Windows API only provides the information in this way (well, i was only able to find it in this way, at least).
 
-In this case we will exploit `Performance Counters` to get the number of context switches per thread per second. We need to use various of these counters, since the one we cared about does not used process ids and thread ids, but rather process names and instances, weird concepts that ***can***, with some extra work, be mapped to the process ids and thread ids that we have in Python.
+In this case we will exploit `Performance Counters` to get the number of context switches per thread per second. We need to use various of these counters, because the one we actually care about does not use process ids and thread ids, but rather process names and instances, weird concepts that ***can***, with some extra work, be mapped to the process ids and thread ids that we have in Python.
 
-Performance Counters are a series of windows API functions that allow us to get a lot of information about the system, like CPU usage, memory usage, disk usage, etc. In our case the performance counter we are interested in is the `Context Switches/sec` counter. For accessing these counters, we need to specify a `counter path` that is a string that tells the API where to find the counter we are interested in.
+[Performance Counters](https://learn.microsoft.com/en-us/windows/win32/PerfCtrs/performance-counters-portal) are a series of windows API functions that allow us to get a lot of information about the system, like CPU usage, memory usage, disk usage, etc. In our case the performance counter we are interested in is the `Context Switches/sec` counter. For accessing these counters, we need to specify a `counter path` that is a string that tells the API where to find the counter we are interested in.
 
 The general format of the counter path is `\\Computer\PerfObject(ParentInstance/ObjectInstance#InstanceIndex)\Counter`, where:
 
@@ -1767,7 +1766,9 @@ import re
 
 pattern = r'python\/\d+#?\d?' # <1>
 
-python_threads = [re.findall(pattern, s)[0] for s in win32pdh.ExpandCounterPath('\\Thread(*)\\ID Thread') if 'python' in s]
+python_threads = [re.findall(pattern, s)[0] 
+                  for s in win32pdh.ExpandCounterPath('\\Thread(*)\\ID Thread') 
+                  if 'python' in s]
 
 print(python_threads) # <3>
 ```
@@ -1815,6 +1816,7 @@ def get_pid_tid(parent, instance):
     query_handle = win32pdh.OpenQuery()
     pid_handle = win32pdh.AddCounter(query_handle, pid_path)
     tid_handle = win32pdh.AddCounter(query_handle, tid_path)
+    pid, tid = None, None
 
     try:
         win32pdh.CollectQueryData(query_handle)
@@ -1822,7 +1824,6 @@ def get_pid_tid(parent, instance):
         _, tid = win32pdh.GetFormattedCounterValue(tid_handle, win32pdh.PDH_FMT_LONG)
     except Exception as e:
         print(f"Failed to get counter data: {e}")
-        pid = None
 
     win32pdh.CloseQuery(query_handle)
     return pid, tid
@@ -1860,16 +1861,13 @@ The time i executed the prior code in my Windows machine, the info for the curre
 
 > `{'parent': 'python', 'instance': '0#5', 'pid': 27884, 'tid': 30752}`
 
-This was the final piece of the puzzle we needed. Calculate the context switches per second of our thread has become possible with the use of the following function:
+This was the final piece of the puzzle we needed. Calculating the context switches per second of our threads has become possible with the use of the following function:
 
 
 ```{python}
 # | echo: true
 # | code-fold: show
 # | eval: False
-
-import win32pdh
-
 
 import win32pdh
 import win32api
@@ -1917,8 +1915,472 @@ And, again, ***just like that***, we have the number of context switches per sec
 
 :::
 
+With the prior information, you have all the tools needed to start using multithreading in Python. Please, just don't use it in CPU-bound tasks, the whole point of the benchmark we did was so you don't use them for that. Rather, use it for I/O-bound tasks, such as multiple nwetwork calls and stuff like that.
+
+For CPU-bound tasks, we do have a way in Python of improving their performance and writing truly parallel code, this is by using the `multiprocessing` module, which we will cover in the next section.
+
 
 ### Multiprocessing in Python
+
+Multiprocessing is probably one of the only ways of writing truly parallel code in Python. 
+
+Since the GIL was such a problem, bacause threads could not parallely run with the same interpreter, the solution the Python community found was to just have multiple interpreters, running in parallel in multiple processes. By having different processes, the running threads would not share memory space, so its reference counts variables would be completely safe of race conditions.
+
+In this sections we will explain how to use the `multiprocessing` module and `concurrent.futures` module to create, manage and synchronize processes. You will find that most of the apis for doing these tasks, are incredibly similar to the ones used for multithreading. 
+
+We will also see some of the many ways to solve *interprocess communication*, which is a new problem that arises given that our processes do not share memory space, thus don't have an easy way of exchanging information with each other.
+
+
+#### The `multiprocessing`and `concurrent.futures` Modules
+
+The `Process` class from the `multiprocessing` module is the equivalent of the `Thread` class from the `threading` module. It allows you to create and manage processes in Python.	
+
+There is, though, a new catch when creating a process with this class. The `multiprocessing` module use low-level system calls to start each new process, these system calls differ a little depending on the OS you are running. There are 3 main system calls that can be used to create a new process, and only one of them is available in all 3 major OSs (Mac, Linux and Windows). Here is a table with this information:
+
+| Start Method | Mac | Linux | Windows |
+|-------------|-----|-------|---------|
+| `fork`      | Yes | Yes   | No      |
+| `forkserver`     | Yes | Yes   | No      |
+| `spawn`     | Yes | Yes   | Yes     |
+
+Additionally, the default start method used by each platform is:
+
+-   `fork` on Linux
+-   `spawn` on Windows and Mac.
+
+
+:::{.callout-important}
+
+With most of the code in this section i won't be executing the code cells but rather just showing their expected results in every execution environment. This is because multiprocessing code is highly platform dependant and, in particular, it plays badly when on jupyter notebooks in Windows (like this blog). For that reason, i rather take the problem as an oportunity to explain all these platform dependant nuances.
+
+Also, unless specificaly stated, all the code in this section is meant to be run in a Python script, not in a Jupyter notebook. We will have a dedicated section for multiprocessing in Jupyter notebooks later on.
+
+:::
+
+The `fork` and `forkserver` system calls are not available on Windows, so the `spawn` method is used by default on this platform. The `spawn` method creates a new Python interpreter from scratch. This means that the new process will not inherit the state of the parent process, and the new process will not share memory with the parent process. Also, the newly spwaned process will run the main module from the beginning, so you will need to safeguard the main module with a `if __name__ == "__main__":` clause.
+
+On the contrary, the `fork` method creates a new process by duplicating the current process. This tends to be faster than `spawn` and also means that the new process will inherit the state of the parent process, its variables, its memory, file descriptors, etc. Crucially, the new process will continue executing from the point where the `fork` method was called, so you don't need to safeguard the main module with a `if __name__ == "__main__":` clause, although is still a good practice to do so.
+
+Finally, the `forkserver` method is a compromise between the two. It creates a new process called the `server process` in a way similar to calling `spawn`, but any other new process after that will be created by calling `fork` on the `server process`. @multiprocessing_1
+
+
+You can change the default start method by using the function `set_start_method` from the `multiprocessing` module. This function should be called before creating any new process and must be called a single time in your program, else we will get an error of the form `RuntimeError: context has already been set`.
+
+Let's see an example of how to change the start method to `fork`:
+
+```{python}
+# | echo: true
+# | code-fold: show
+# | eval: False
+# | code-summary: "Linux, Mac"
+
+from multiprocessing import set_start_method
+
+# Always safeguard the main module. It is a good practice.
+if __name__ == "__main__":
+  set_start_method("fork")
+  # Create and manage processes here
+
+```
+
+The prior code will not work in Windows, since the `fork` method is not available in this platform. If you try to run this code in Windows, you will get an error of the form `ValueError: cannot find context for 'fork'`.
+
+##### Basic Process Creation and Management
+
+The APIs for process creation and management in the `multiprocessing` module are very similar to the ones in the `threading` module. You can create a new process by creating an instance of the `Process` class and calling its `start` method. The `target` argument should be a function that the new process will run. You can wait for a process to finish by calling its `join` method.
+
+```{python}
+# | echo: true
+# | code-fold: show
+# | eval: False
+# | code-summary: "Linux, Mac, Windows"
+
+from multiprocessing import Process
+import os
+
+def worker():
+  print(f"Worker: My PID is {os.getpid()}", flush=True) # <1>
+
+if __name__ == "__main__":
+  print("This is from the main process")
+  p = Process(target=worker) # <2>
+  p.start() # <3>
+  p.join() # <4>
+
+```
+
+1.  The `worker` function prints the PID of the current process.
+2.  The `Process` class is created with the `worker` function as the target.
+3.  The new process is started.
+4.  The main process waits for the new process to finish.
+
+```
+This is from the main process
+Worker: My PID is 12345
+```
+
+The `Process` class has a `name` attribute that you can use to give a name to the process. This can be useful for debugging purposes.
+
+```{python}
+# | echo: true
+# | code-fold: show
+# | eval: False
+# | code-summary: "Linux, Mac, Windows"
+
+from multiprocessing import Process, current_process
+import os
+
+
+def worker():
+    worker_process = current_process()  # <1>
+    name = worker_process.name  # <1>
+    print(f"Worker: My PID is {os.getpid()} and my name is: {name}", flush=True)  # <1>
+
+
+if __name__ == "__main__":
+    print(f"This is from the main process: {os.getpid()}")
+    p = Process(target=worker, name="Worker Process")
+    p.start()
+    p.join()
+
+```
+1. The `current_process` function returns the current process object. This object has a `name` attribute that you can use to get the name of the process.
+
+```
+This is from the main process: 9348
+Worker: My PID is 27268 and my name is: Worker Process
+
+```
+
+##### Starting Methods Differences
+
+As we saw before, `fork` duplicates the main process while `spawn`creates a new one from scratch. In practices this can lead to some differences when executing the exact same code on different platforms.
+
+See the following example where we have code executing outside of the `if __name__ == "__main__":` clause:
+
+```{python}
+# | echo: true
+# | code-fold: show
+# | eval: False
+# | code-summary: "Windows, Linux, Mac"
+
+from multiprocessing import Process, current_process
+
+print(f"Global Scope. Process name: {current_process().name}")
+
+
+def worker():
+  print(f"Worker: My PID is {current_process().pid}", flush=True)
+
+
+if __name__ == "__main__":
+  print(f"This is from the main process: {current_process().pid}")
+  p = Process(target=worker, name="Worker Process")
+  p.start()
+  p.join()
+
+```
+Since the default start method in Windows and Mac is `spawn`, the output of the prior code on those platforms will be:
+
+```
+Global Scope. Process name: MainProcess
+This is from the main process: 16560
+Global Scope. Process name: Worker Process
+Worker: My PID is 26380
+
+```
+
+On the other hand, in Linux, the default start method is `fork`, so the output will be:
+
+
+```
+
+Global Scope. Process name: MainProcess
+This is from the main process: 16560
+Worker: My PID is 26380
+
+```
+
+You can see that when using `fork` as start method, the execution flow continues from the point the process was created, while with `spawn` the execution flow starts from the beginning of the main module because it is imported again in the new process.
+
+##### Passing Arguments and Keyword Arguments to a Process
+
+You can pass arguments to a process by using the `args` argument when creating the process. The arguments should be passed as a tuple.
+
+Keywords arguments can also be passed to the target function by using the `kwargs` argument when creating the process.
+
+```{python}
+
+# | echo: true
+# | code-fold: show
+# | eval: False
+# | code-summary: "Linux, Mac, Windows"
+
+from multiprocessing import Process
+import os
+
+
+def worker(name, age, **kwargs):
+    print(f"Worker: My name is {name} and my age is {age}", flush=True)
+    print(f"Worker: My PID is {os.getpid()}", flush=True)
+    print(f"Worker: My kwargs are: {kwargs}", flush=True)
+
+
+if __name__ == "__main__":
+    print(f"This is from the main process: {os.getpid()}")
+    p = Process(
+        target=worker, args=("John", 25), kwargs={"city": "New York", "country": "USA"}
+    )
+    p.start()
+    p.join()
+
+```	
+
+```
+This is from the main process: 23096
+Worker: My name is John and my age is 25
+Worker: My PID is 5148
+Worker: My kwargs are: {'city': 'New York', 'country': 'USA'}
+```
+  
+##### Extending the `Process` Class
+
+You can create a new class that extends the `Process` class and overrides the `run` method. The `run` method is the method that the new process will run.
+
+```{python}
+
+# | echo: true
+# | code-fold: show
+# | eval: False
+# | code-summary: "Linux, Mac, Windows"
+
+from multiprocessing import Process
+import os
+
+class Worker(Process):
+    def __init__(self, name, age, **kwargs):
+        super().__init__()
+        self.name = name
+        self.age = age
+        self.kwargs = kwargs
+
+    def run(self):
+        print(f"Worker: My name is {self.name} and my age is {self.age}", flush=True)
+        print(f"Worker: My PID is {os.getpid()}", flush=True)
+        print(f"Worker: My kwargs are: {self.kwargs}", flush=True)
+
+
+if __name__ == "__main__":
+    print(f"This is from the main process: {os.getpid()}")
+    p = Worker("John", 25, city="New York", country="USA")
+    p.start()
+    p.join()
+
+```
+
+```
+This is from the main process: 3316
+Worker: My name is John and my age is 25
+Worker: My PID is 2000
+Worker: My kwargs are: {'city': 'New York', 'country': 'USA'}
+```
+
+The pattern above might be usefull when dealing with parallelizable entities, like a list of tasks that can be executed in parallel. In this way, your Object Oriented code can be more organized and easier to maintain.
+
+
+
+
+
+##### Using a `ProcessPoolExecutor` from the `concurrent.futures` Module
+
+The `concurrent.futures` module provides a high-level interface for managing the creation of processes. The `ProcessPoolExecutor` class is a subclass of the `Executor` class and allows you to create a pool of processes that can be used to execute tasks asynchronously.
+
+The `ProcessPoolExecutor` class has a `map` method that works similarly to the `map` method of the `ThreadPoolExecutor` class. The `map` method takes a function and an iterable of arguments and returns an iterator that yields the results of applying the function to the arguments.
+
+```{python}
+
+# | echo: true
+# | code-fold: show
+# | eval: False
+# | code-summary: "Linux, Mac, Windows"
+
+from concurrent.futures import ProcessPoolExecutor
+import os
+
+print("This is from global scope", flush=True)
+
+
+def worker(name, age):
+    print(f"Worker: my PID is {os.getpid()}", flush=True)
+    return f"Worker: My name is {name} and my age is {age}"
+
+
+if __name__ == "__main__":
+    with ProcessPoolExecutor(max_workers=3) as executor:
+        results = executor.map(worker, ["John", "Jane"], [25, 30])
+        for result in results:
+            print(result, flush=True)
+
+```
+
+As it is, when executed on Windows almost all the times it will print something as follows:
+
+```
+This is from global scope
+This is from global scope
+This is from global scope
+Worker: my PID is 6416
+Worker: my PID is 6416
+Worker: My name is John and my age is 25
+Worker: My name is Jane and my age is 30
+
+```	
+
+You might notice things like the main module being imported multiple times, but what you should pay attention in here is to the fact that the process pool is reutilizing the same process to execute the tasks. But if we execute the same code in Linux we will have the following output almost all the times:
+
+```
+This is from global scope
+Worker: my PID is 33264
+Worker: My name is John and my age is 25
+Worker: my PID is 33265
+Worker: My name is Jane and my age is 30
+```
+
+Not only the main module is not imported multiple times, but also the tasks are executed in different processes, as expected.
+
+Now, Windows IS capable of using many processes, it just seems that it only does so when it really needs it. For example, if we put a `sleep` call in the middle of the worker task:
+
+```{python}
+
+# | echo: true
+# | code-fold: show
+# | eval: False
+# | code-summary: "Linux, Mac, Windows"
+
+from concurrent.futures import ProcessPoolExecutor
+import os
+import time
+
+print("This is from global scope", flush=True)
+
+
+def worker(name, age):
+    time.sleep(1)
+    print(f"Worker: my PID is {os.getpid()}", flush=True)
+    return f"Worker: My name is {name} and my age is {age}"
+
+
+if __name__ == "__main__":
+    with ProcessPoolExecutor(max_workers=3) as executor:
+        results = executor.map(worker, ["John", "Jane"], [25, 30])
+        for result in results:
+            print(result, flush=True)
+
+```
+
+When run in Windows, all the time, it will print something as follows:
+
+```
+This is from global scope
+This is from global scope
+This is from global scope
+Worker: my PID is 8392
+Worker: my PID is 11304
+Worker: My name is John and my age is 25
+Worker: My name is Jane and my age is 30
+```
+
+Showing that in this case it does use multiple processes. This weird behaviour might be due to the `spawn` method again. The reason is simple, creating a new process with `spawn` is expensive, so for simple tasks as the prior example, it might actually be faster to execute both calls with a single process rather than creating a whole new one from scratch.
+
+In summary, do not trust that when using a `ProcessPoolExecutor` the tasks will be run in different OS Processes with different PIDs.
+
+
+Another way of usig the `ProcessPoolExecutor` class is by calling its `submit` method. This method takes a function and its arguments and returns a `Future` object that represents the result of the function call. You can use the `result` method of the `Future` object to get the result of the function call.
+
+```{python}
+
+# | echo: true
+# | code-fold: show
+# | eval: False
+# | code-summary: "Linux, Mac, Windows"
+
+from concurrent.futures import ProcessPoolExecutor
+import os
+import time
+
+
+def worker(name, age):
+    time.sleep(1)
+    print(f"Worker: my PID is {os.getpid()}", flush=True)
+    return f"Worker: My name is {name} and my age is {age}"
+
+
+if __name__ == "__main__":
+    with ProcessPoolExecutor(max_workers=3) as executor:
+        future1 = executor.submit(worker, "John", 25)
+        future2 = executor.submit(worker, "Jane", 30)
+        print(future1.result(), flush=True)
+        print(future2.result(), flush=True)
+
+```
+```
+Worker: my PID is 15808
+Worker: my PID is 21816
+Worker: My name is John and my age is 25
+Worker: My name is Jane and my age is 30
+```
+
+##### Printing and Logging from different Processes
+
+
+You may have seen in all the prior example code that when printing we always use the `flush=True` argument. The reason for this extra code is because the `print` function in child processes created with `spwan` may be trated by some OSs in some circunstances as a buffered stream, so the output may not be printed immediately, but rather when the buffer is full or when the process finishes. This can be quite annoying when debugging, so we use the `flush=True` argument to force the output to be printed immediately.
+
+Another *BIG* consideration to have in mind is the fact that when you create a new process with `spawn`, the new process will not inherit the state of the parent process, so it will not inherit the `stdout` and `stderr` streams. This means that if you use the `print` function in the new process, depending on the situation, the output may not be printed to the console, but rather to a file or to nowhere at all. Usually, if you execute you python script from the command line, the output will be printed to the console, but this is only because the default behaviour of OSs whe creating a new process from a console is to set such console as the `stdout` and `stderr` streams of the new process, so both the main process and all its children will be pointing to the console. 
+
+***BUT***, keep in mind that although both parent and children point to the same external location (the console were the `.py` script was launched), the children DO NOT have the same `stdout` and `stderr` objects as the parent process, so if you change the `stdout` or `stderr` objects in the parent process, the children will not be affected.
+
+This distinction seems subtle, indeed it is, and it will be the main reason why in jupyter notebooks on Windows, printing from child processes is basically broken. We will see this in more detail in the next section.
+
+
+##### Multiprocessing in Jupyter Notebooks
+
+#### Synchronization Primitives in Multiprocessing
+
+##### Lock
+
+##### RLock
+
+##### Semaphore
+
+##### Event
+
+##### Condition
+
+##### Barrier
+
+##### Queue
+
+
+#### Interprocess Communication
+
+
+##### Pipes
+
+##### Queues
+
+##### Shared Memory
+
+##### Value and Array
+
+##### Manager
+
+
+
+#### Benchmarking Multiprocessing in Python in a CPU-Bound Task
+
+
+
+
 
 ### Asynchronous Programming in Python
 
