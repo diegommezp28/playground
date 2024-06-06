@@ -2290,7 +2290,7 @@ Worker: My name is John and my age is 25
 Worker: My name is Jane and my age is 30
 ```
 
-Showing that in this case it does use multiple processes. This weird behaviour might be due to the `spawn` method again. The reason is simple, creating a new process with `spawn` is expensive, so for simple tasks as the prior example, it might actually be faster to execute both calls with a single process rather than creating a whole new one from scratch.
+Showing that, in this case, it does use multiple processes. This weird behaviour might be due to the `spawn` method again. The reason is simple, creating a new process with `spawn` is expensive, so for simple tasks as the prior example, it might have happened that the first task released the first process before the second process was created by the `ProcessPoolExecutor`. In such case, to the eyes of the second task, the first process was already available, so it just used it.
 
 In summary, do not trust that when using a `ProcessPoolExecutor` the tasks will be run in different OS Processes with different PIDs.
 
@@ -2335,11 +2335,78 @@ Worker: My name is Jane and my age is 30
 
 You may have seen in all the prior example code that when printing we always use the `flush=True` argument. The reason for this extra code is because the `print` function in child processes created with `spwan` may be trated by some OSs in some circunstances as a buffered stream, so the output may not be printed immediately, but rather when the buffer is full or when the process finishes. This can be quite annoying when debugging, so we use the `flush=True` argument to force the output to be printed immediately.
 
-Another *BIG* consideration to have in mind is the fact that when you create a new process with `spawn`, the new process will not inherit the state of the parent process, so it will not inherit the `stdout` and `stderr` streams. This means that if you use the `print` function in the new process, depending on the situation, the output may not be printed to the console, but rather to a file or to nowhere at all. Usually, if you execute you python script from the command line, the output will be printed to the console, but this is only because the default behaviour of OSs whe creating a new process from a console is to set such console as the `stdout` and `stderr` streams of the new process, so both the main process and all its children will be pointing to the console. 
+Another *BIG* consideration to have in mind is the fact that when you create a new process with `spawn`, the new process will not inherit the state of the parent process, so it will not inherit the `stdout` and `stderr` streams. This means that if you use the `print` function in the new process, depending on the situation, the output may not be printed to the console, but rather to a file or to nowhere at all. Usually, if you execute your python script from the command line, the output will be printed to the console, but this is only because the default behaviour of OSs whe creating a new process from a console is to set such console as the `stdout` and `stderr` streams of the new process, so both the main process and all its children will be pointing to the console. 
 
 ***BUT***, keep in mind that although both parent and children point to the same external location (the console were the `.py` script was launched), the children DO NOT have the same `stdout` and `stderr` objects as the parent process, so if you change the `stdout` or `stderr` objects in the parent process, the children will not be affected.
 
-This distinction seems subtle, indeed it is, and it will be the main reason why in jupyter notebooks on Windows, printing from child processes is basically broken. We will see this in more detail in the next section.
+We can see this in action by using the `redirect_stdout` context manager from the `contextlib` module. This context manager allows you to redirect the `stdout` stream to a file-like object.
+
+In the following example, we will redirect the `stdout` stream to a file and then create a new process that prints to the `stdout` stream.
+
+```{python}	
+
+# | echo: true
+# | code-fold: show
+# | eval: False
+# | code-summary: "Linux, Mac, Windows"
+
+from multiprocessing import Process
+import os
+from contextlib import redirect_stdout
+
+
+class Worker(Process):
+    def __init__(self, name, age, **kwargs):
+        super().__init__()
+        self.name = name
+        self.age = age
+        self.kwargs = kwargs
+
+    def run(self):
+        print(f"Worker: My name is {self.name} and my age is {self.age}", flush=True)
+        print(f"Worker: My PID is {os.getpid()}", flush=True)
+        print(f"Worker: My kwargs are: {self.kwargs}", flush=True)
+
+
+if __name__ == "__main__":
+    with open("log.txt", "w") as f:
+        with redirect_stdout(f):
+            print(f"This is from the main process: {os.getpid()}")
+            p = Worker("John", 25, city="New York", country="USA")
+            p.start()
+            p.join()
+
+```
+
+For Windows, the console output will be:
+
+```
+Worker: My name is John and my age is 25
+Worker: My PID is 11712
+Worker: My kwargs are: {'city': 'New York', 'country': 'USA'}
+```
+
+and the file output:
+
+```{filename="log.txt"}
+This is from the main process: 14676
+```
+
+In Linux though, the console output will be **empty** and the file output will be:
+
+```{filename="log.txt"}
+This is from the main process: 270
+Worker: My name is John and my age is 25
+Worker: My PID is 271
+Worker: My kwargs are: {'city': 'New York', 'country': 'USA'}
+```
+
+So the stdout redirection in Linux affected not only the parent but also the children, while on Windows it only affected the parent.
+
+
+This distinction seems subtle, indeed it is, but it will be the main reason why in jupyter notebooks on Windows, printing from children processes is basically broken. 
+
+We will see this in more detail in the next section.
 
 
 ##### Multiprocessing in Jupyter Notebooks
