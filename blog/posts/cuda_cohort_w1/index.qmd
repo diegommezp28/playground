@@ -11,7 +11,7 @@ format:
     code-copy: true
     code-line-numbers: false
     code-block-bg: true
-    code-block-border-left: "#31BAE9"
+#    code-block-border-left: "#31BAE9"
     smooth-scroll: false
     html-math-method: katex
     highlight-style: pygments
@@ -2410,6 +2410,189 @@ We will see this in more detail in the next section.
 
 
 ##### Multiprocessing in Jupyter Notebooks
+
+For the ML comunity Jupyter Notebooks are one of the core tools where they write and prototype Python code. And if someone is following this tutorial, they will probably want to use multiprocessing in Jupyter Notebooks. 
+
+There are design choices in Jupyter that make multiprocessing a little bit more complicated than in a Python script, even more so when using Windows.
+
+We'll start with the basics, creating a simple process in a Jupyter Notebook.
+
+To see everything in action, we will first start a Jupyter Notebook server by running the following command in the terminal (of course, you must have `jupyter` installed):
+
+```bash
+jupyter notebook
+```
+
+Please don't use out-of-the-box notebooks like the ones in VScode or Pycharm for this section. You will see why it is important to start it directly from the terminal in a moment.
+
+This will open a new tab in your browser with the Jupyter Notebook interface. But crucially, from the terminal you started the server, you will also have access to the server logs, which will be very important for this section.
+
+![Example of Jupyter Notebook Server Logs](images/jhub_server_start.jpg){width=90% #fig:jhub_server_start}
+
+
+
+Create a new Python 3 notebook and run the following code:
+
+```{python}
+# | echo: true
+# | code-fold: show
+# | eval: False
+# | code-summary: "Linux, Mac, Windows"
+
+import multiprocessing as mp
+from time import sleep
+
+def mp_func():
+    print('Starting mp_func')
+    sleep(1)
+    print('Finishing mp_func')
+
+if __name__ == '__main__':
+    mp.set_start_method("spawn")
+    p = mp.Process(target=mp_func)
+    p.start()
+    print('Waiting for mp_func to end')
+    p.join()
+    print('mp_func ended')
+```
+
+This is almost the same code we used before, so it should work fine doesn't it? Well, it doesn't. If you run this code in a Jupyter Notebook, it will throw the following error:
+
+```{python}
+# | echo: true
+# | code-fold: show
+# | eval: False
+# | code-block-bg: false
+# | code-block-border-left: #ffdddd
+
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/home/diegomezp/miniconda3/envs/general311/lib/python3.11/multiprocessing/spawn.py", line 122, in spawn_main
+    exitcode = _main(fd, parent_sentinel)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/diegomezp/miniconda3/envs/general311/lib/python3.11/multiprocessing/spawn.py", line 132, in _main
+    self = reduction.pickle.load(from_parent)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: Can't get attribute 'mp_func' on <module '__main__' (built-in)>
+```
+
+This happens because there is a major limitation of the `multiprocessing` module on interactive interpreters like Jupyter Notebooks. Quoting the Python documentation:
+
+> Functionality within this package requires that the `__main__` module be importable by the children. This is covered in Programming guidelines however it is worth pointing out here. This means that some examples, such as the multiprocessing.Pool examples will not work in the interactive interpreter. [source](https://docs.python.org/3/library/multiprocessing.html)
+
+
+This limitation only happens when using `spawn` as start method, a.k.a. in Windows and Mac. If you change the start method to `fork`, the code will work fine in Linux and Mac (but not in Windows). To solve the issue, you must made the `mp_func` function importable by the children. This can be done by moving the function to a separate module and importing it in the main module.
+
+Create a new Python file called `mp_module.py` with the following content:
+
+```{.python filename="mp_module.py"}
+
+from time import sleep
+
+def mp_func():
+    print('Starting mp_func')
+    sleep(1)
+    print('Finishing mp_func')
+
+```
+
+Now, modify the Jupyter Notebook code to import the `mp_func` function from the `mp_module` module:
+
+```{python}
+# | echo: true
+# | code-fold: show
+# | eval: False
+# | code-summary: "Linux, Mac, Windows"
+
+import multiprocessing as mp
+from mp_module import mp_func
+
+if __name__ == '__main__':
+    mp.set_start_method("spawn")
+    p = mp.Process(target=mp_func)
+    p.start()
+    print('Waiting for mp_func to end')
+    p.join()
+    print('mp_func ended')
+```
+
+This should be sufficient for a successful execution in Linux, Mac and Windows too. But if you are following the code in a Windows machine, you may have noticed the the print statements from the child process are not being printed to the Notebook. Here is where the console logs from the Jupyter Notebook server come in handy. If you look at the logs, you will see that the output of the child process is being printed there. 
+
+![Example of Jupyter Notebook Server Logs](images/jhub_server_logs.jpg){width=90% #fig:jhub_server_logs}
+
+As of now, this behaviour is preatty much unavoidable in Windows. The reason involves process inheritance and the way Jupyter Notebooks are designed. 
+
+:::{.callout-warning collapse="false"}
+
+#### Why are Children Process Prints Broken on Jupyter Notebooks in Windows?
+
+We need to get aqcuainted with the way Jupyter Notebooks work. When you run a Jupyter Notebook server, you are actually running a web server that serves the Jupyter Notebook interface. All the code is executed by a background Python process called the `kernel`. Jupyter intercepts the stdout and stderr streams of the kernel process and redirects them to the web interface. This is why you see the output of the code cells in the notebook, that way it can show the results of your operations in the web view. 
+
+![Jupyter Notebook Architecture Diagram. [Source](https://docs.jupyter.org/en/latest/projects/architecture/content-architecture.html)](images/notebook_components.webp){#fig:notebook_components}
+
+When you create a new process in a Jupyter Notebook, the new process is a child of the kernel process. The kernel process is the one that has its stdout and stderr streams redirected to the web interface, whether or not the output of the child process is shown in the notebook entirely depends on if the child process inherits the stdout and stderr streams of the kernel process.
+
+
+When those process are created using `fork`, by design, they will be a copy of the parent process, including its file descriptors, in particular they will inherit the stdout and stderr streams of the parent process. This is why the output of the child process is shown in the notebook when using `fork` as start method.
+
+But, when using `spawn` it entirely depends on the OS. In some Unix based systems, the child process will inherit the stdout and stderr streams of the parent process, so the output of the child process will be shown in the notebook. But in Windows, the child process will not inherit the stdout and stderr streams of the parent process, so the output of the child process will not be shown in the notebook but in wherevere was its default locations when they were created. 
+
+This default location is usually the console where the Jupyter Notebook server was started, so you can see the output of the child process in the console logs of the Jupyter Notebook server. In fact, even with `fork`, the output of the child process will be shown in the console logs too, not only in the notebook.
+
+:::
+
+So how do you log stuff in this specific, although, not quite uncommon case? Well, if you want for it to be printed in the notebook, you might need to have an alternate way of sending the output to the kernel process. One way of doing this is by using the `Queue` class from the `multiprocessing` module.
+
+> We will have a separate section for interprocess communication but i wanted to have a possible solution to the problem right here on this same section it was posed.
+
+
+```{.python filename="mp_module.py"}
+
+from time import sleep
+
+def mp_func(queue):
+    try:
+        queue.put('Starting mp_func')
+        sleep(1)
+        queue.put('Finishing mp_func')
+        queue.put("mp_func completed successfully")
+    except Exception as e:
+        queue.put(f"Error in mp_func: {e}")
+
+```
+
+
+```{python}	
+
+# | echo: true
+# | code-fold: show
+# | eval: False
+# | code-summary: "Linux, Mac, Windows"
+
+import multiprocessing as mp
+from time import sleep
+from multiprocessing_code import mp_func
+
+if __name__ == '__main__':
+    queue = mp.Queue()
+    p = mp.Process(target=mp_func, args=(queue,))
+    p.start()
+    print('Waiting for mp_func to end')
+    p.join()
+    # Get output from the queue
+    while not queue.empty():
+        print(queue.get())
+
+```
+
+```
+Waiting for mp_func to end
+Starting mp_func
+Finishing mp_func
+mp_func completed successfully
+```
+
+This code will work in all platforms and will print the output of the child process in the notebook.
 
 #### Synchronization Primitives in Multiprocessing
 
