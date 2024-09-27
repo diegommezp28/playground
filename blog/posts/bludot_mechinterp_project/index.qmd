@@ -1,0 +1,96 @@
+---
+title: "A Method to find Bilingual Features in SparseAutoencoders"
+description: "A systematic, data driven process to find Bilingual features inside GemmaScope SparseAutoencoder models."
+author: "Diego Andrés Gómez Polo"
+date: "9/20/2024"
+format:
+  html:
+    code-fold: true
+    code-summary: "Show source"
+    code-copy: true
+    smooth-scroll: true
+# bibliography: ref.bib
+# csl: ieee-with-url.csl
+# title-block-banner: images/banner.png
+# title-block-banner-color: black
+categories: ["en", "NLP", "Mechanistic Interpretability", "python"]
+# image: images/thumbnail.png
+toc: true
+toc-location: left-body
+comments: 
+  utterances:
+    repo: diegommezp28/playground
+    label: blog-comments
+    theme: github-dark-orange
+    issue-term: pathname
+website:
+  # open-graph: 
+  #   image: images/thumbnail.png
+  twitter-card: true
+editor:
+  render-on-save: true
+# jupyter: python3
+---
+
+::: column-margin
+## Reproducibility and Resources
+To reproduce all the results, feel free to use this [Colab Notebook](https://colab.research.google.com). But, be aware that in order to run the part of the code that gathers the activations, you will need around 24-25GB of RAM in CPU or close to that VRAM if on GPU. The colab free tier does not provide this amount of resources. You can still run the analysis part of the code with this [dataset](https://huggingface.co/datasets/diegomezp/gemmascope_bilingual_activations). The latter will run on almost any relatively modern computer.
+:::
+
+## Introduction
+
+
+
+
+
+## Hopes for Mechanistic Interpretability
+
+## Quick Background on SparseAutoencoders
+
+### Basic Theory
+
+### JumpRelu SparseAutoencoder
+
+### GemmaScope Models
+
+## Methodology
+
+### Quick Overview of GemmaScope SAEs
+
+### Setup and Code
+
+### Results
+
+
+## Conclusion
+
+## Apendix
+
+### On SAELens and TransformersLens
+
+### Interpretation of Feature Dashboards
+
+```{python}
+#| code-fold: true
+#| column: page
+
+from IPython.display import IFrame
+
+# get a random feature from the SAE
+feature_idx = 2647
+
+html_template = "https://neuronpedia.org/{}/{}/{}?embed=true&embedexplanation=true&embedplots=true&embedtest=true&height=300"
+
+def get_dashboard_html(sae_release = "gpt2-small", sae_id="7-res-jb", feature_idx=0):
+    return html_template.format(sae_release, sae_id, feature_idx)
+
+# Neuronpedia names are usually different to the ones in HF/SAE_Lens
+neuronpedia_sae, neuronpedia_id = "gemma-2-2b/20-gemmascope-res-16k".split("/")
+html = get_dashboard_html(sae_release = neuronpedia_sae, sae_id=neuronpedia_id, feature_idx=feature_idx)
+IFrame(html, width=1200, height=600)
+```
+
+
+
+
+...
