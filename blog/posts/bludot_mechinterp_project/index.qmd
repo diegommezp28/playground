@@ -19,8 +19,8 @@ format:
 # title-block-banner-color: black
 categories: ["en", "NLP", "Mechanistic Interpretability", "SAE", "Multilinguality", "Research Style Blog"]
 # image: images/thumbnail.png
-toc: false
-toc-location: left-body
+toc: true
+toc-location: left
 comments: 
   utterances:
     repo: diegommezp28/playground
@@ -77,9 +77,34 @@ In this work, we present a systematic, data-driven process to generate a list of
 
 ## Methodology
 
+<!-- In this section, we will describe the methodology used to find bilingual features in a given SAE. First, we will describe the data collection process, then we will explain how we extract features from the SAE, and finally, we will describe the bilingual interpretability score we use to rank the features. -->
+
+**The driving intuition behind our methodology** is that, inspite of changes in tokenization, word order, general linguistic structure, and even the distribution of feature logits across languages, for a feature to be bilingual, it is necessary that it circumvents these differences and be activated by the same or similar sentences in both languages.
+
+Such condition may not be sufficient, but as we will see, it is a good starting point to find bilingual features in a SAE.
+
+In this section, we will describe the specific methodology that arises from this intuition, which consists of three main steps:
+
+1. **Data Collection**: We gather a dataset of equivalent English-Spanish sentences.
+2. **Feature Extraction**: We extract the features from the SAE for each sentence in the dataset.
+3. **Bilingual Interpretability Score**: We define a score that measures how similar the activations of a feature are across languages.
+
+### Basic Setup
+
+For our experiments, we used ***Gemma 2-2B*** as our language model on its base pretrained version without any intruction tuning. We focused our experiments on a single SAE from the GemmaScope collection of open-source SAEs [@lieberum2024gemma], specifically, the one with id *gemma-scope-2b-pt-res-canonical/layer_20/width_16k/canonical*. This SAE has 16k features and is trained on the residual stream of the 20th layer of the model. It is the smallest version of this particular hook point, and the choice for its size was made purely for computational reasons.
+
+The 2B version of the Gemma 2 models has 26 layers [@team2024gemma], so a SAE trained on the 20th residual stream is expected to have learned more abstract features than earlier layers. Moreover, we decided to use the residual stream instead of the attention heads because it is an information bottleneck where not only the prior attention head writes to, but also all the later ones, so one should expect that the features learned in this specific point are more abstract and general than those inside the attention mechanism [@elhage2021mathematical].
+
+For our bilingual dataset, we will use a small sample of the OPUS Books dataset [@tiedemann-2012-parallel], with equivalent English-Spanish sentences. 
+
+
+### Feature Extraction
+
+To extract the features from the SAE, we used the `HookedSAETransformer` class from the `SAELens` library. This class allows us to *hook* our SAE to a given language model, and cache the activations of the SAE for a given input. 
+
 <!-- ### Overview of GemmaScope SAEs -->
 
-### Setup and Code
+### Billingual Interpretability Score
 
 ### Results
 
