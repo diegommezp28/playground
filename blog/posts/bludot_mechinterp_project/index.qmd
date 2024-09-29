@@ -1,8 +1,12 @@
 ---
-title: "A Method to find Bilingual Features in SparseAutoencoders"
-description: "A systematic, data driven process to find Bilingual features inside GemmaScope SparseAutoencoder models."
-author: "Diego Andrés Gómez Polo"
-date: "9/20/2024"
+title: "A Method to find Bilingual Features in Sparse autoencoders"
+description: "A systematic, data driven process to find Bilingual features inside GemmaScope Sparse autoencoder models."
+author: 
+    name: "Diego Andrés Gómez Polo"
+    email: "diego.polo@rappi.com"
+    affiliations:
+        - name: "Rappi"
+date: "9/29/2024"
 format:
   html:
     code-fold: true
@@ -13,9 +17,9 @@ format:
 # csl: ieee-with-url.csl
 # title-block-banner: images/banner.png
 # title-block-banner-color: black
-categories: ["en", "NLP", "Mechanistic Interpretability", "python"]
+categories: ["en", "NLP", "Mechanistic Interpretability", "SAE", "Multilinguality", "Research Style Blog"]
 # image: images/thumbnail.png
-toc: true
+toc: false
 toc-location: left-body
 comments: 
   utterances:
@@ -23,6 +27,7 @@ comments:
     label: blog-comments
     theme: github-dark-orange
     issue-term: pathname
+bibliography: ref.bib
 website:
   # open-graph: 
   #   image: images/thumbnail.png
@@ -33,34 +38,52 @@ editor:
 ---
 
 ::: column-margin
-## Reproducibility and Resources
+## Reproducibility
 To reproduce all the results, feel free to use this [Colab Notebook](https://colab.research.google.com). But, be aware that in order to run the part of the code that gathers the activations, you will need around 24-25GB of RAM in CPU or close to that VRAM if on GPU. The colab free tier does not provide this amount of resources. You can still run the analysis part of the code with this [dataset](https://huggingface.co/datasets/diegomezp/gemmascope_bilingual_activations). The latter will run on almost any relatively modern computer.
 :::
 
 ## Introduction
 
+Sparse autoencoders (SAEs) trained on the attention heads and residual streams of large language models have shown great promise at producing seemingly interpretable features [@cunningham2023sparse]. Features gathered from SAEs can be used to understand the inner workings of large language models and even to steer their behaviour in a desired direction [@templeton2024scaling]. 
+
+Is not uncommon to find that some of the features learned by SAEs are multilingual, this is particularly interesting because it suggests that the model has learned to represent and reason through concepts in an abstract way that is independent of the language it is written in. The multilinguality of features, can be viewed as evidence for the *universality of features hypothesis*, which states that learned representations are universal and can form across models and tasks. This is one of the main speculative claims of the mechanistic interpretability agenda [@olah2020zoom].
+
+But, how can we find these multilingual features in a SAE?
+
+Much of the recent work regarding SAEs and mechanistic interpretability, has been about either scaling up the models to make them more powerful [@templeton2024scaling] [@gao2024scaling], finding techniques to make the models better at reconstructing the input [@rajamanoharan2024jumping], or using the learned features to find interesting circuits in the model [@wang2022interpretability]. Many of such endevours end up always finding *some* multilingual features, but they are not the main focus of the work, nor are they systematically searched for.
+
+
+
+In this work, we present a systematic, data-driven process to generate a list of candidate bilingual features from a GemmaScope SAE. We define a bilingual interpretability score for each feature, which is dependent on a dataset of equivalent English-Spanish sentences. We then rank the features based on this score and analyze them. Finally, we discuss the potential for extending this methodology to include more that 2 languages.
 
 
 
 
-## Hopes for Mechanistic Interpretability
 
-## Quick Background on SparseAutoencoders
+
+
+
+
+
+<!-- ## Hopes for Mechanistic Interpretability -->
+
+## Preliminaries: Quick Background on Sparse autoencoders
 
 ### Basic Theory
 
-### JumpRelu SparseAutoencoder
+### JumpRelu Sparse autoencoder
 
-### GemmaScope Models
+### GemmaScope SAEs
 
 ## Methodology
 
-### Quick Overview of GemmaScope SAEs
+<!-- ### Overview of GemmaScope SAEs -->
 
 ### Setup and Code
 
 ### Results
 
+## Discussion
 
 ## Conclusion
 
