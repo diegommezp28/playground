@@ -21,6 +21,7 @@ categories: ["en", "NLP", "Mechanistic Interpretability", "SAE", "Multilingualit
 # image: images/thumbnail.png
 toc: true
 toc-location: left
+tbl-cap-location: bottom
 comments: 
   utterances:
     repo: diegommezp28/playground
@@ -368,6 +369,103 @@ The $\beta$ parameter is a hyperparameter that we tuned specificaly so the $idaf
 
 
 ### Results
+
+
+:::{.column-page}
+
+| **Position** | **Feature ID**                                                                                                                                   | **Interpretation**                                                                                   | **BI Loss Value**             |
+|--------------|---------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------|-------------------------------|
+| 0        | [6530](https://www.neuronpedia.org/gemma-2-2b/20-gemmascope-res-16k/6530)                                                                         | Not clearly interpretable                                                                             | 4.442881974691051e-08          |
+| 1        | [2009](https://www.neuronpedia.org/gemma-2-2b/20-gemmascope-res-16k/2009)                                                                         | References to ***Quality*** and ***Calidad***                                                         | 4.4428819793659613e-08         |
+| 2        | [7502](https://www.neuronpedia.org/gemma-2-2b/20-gemmascope-res-16k/7502)                                                                         | Related to ***Afghanistan*** / ***Afganistán***: places, military organizations (e.g., Taliban)        | 4.442882938285578e-08          |
+| 3        | [4275](https://www.neuronpedia.org/gemma-2-2b/20-gemmascope-res-16k/4275)                                                                         | Feature for the name ***Andrew*** and the Spanish equivalent ***Andrés***                             | 4.442882967726952e-08          |
+| 4        | [2760](https://www.neuronpedia.org/gemma-2-2b/20-gemmascope-res-16k/2760)                                                                         | References to ***Price*** / ***Precio***                                                              | 4.442889617501746e-08          |
+| 5        | [10194](https://www.neuronpedia.org/gemma-2-2b/20-gemmascope-res-16k/10194)                                                                       | Feature referring to ***United States*** / ***Estados Unidos*** / ***US*** / ***America***            | 4.442939963824309e-08          |
+| 6        | [13963](https://www.neuronpedia.org/gemma-2-2b/20-gemmascope-res-16k/13963)                                                                       | References to ***scientific measurements***                                                           | 4.443070022280122e-08          |
+| 7        | [2054](https://www.neuronpedia.org/gemma-2-2b/20-gemmascope-res-16k/2054)                                                                         | References to ***February*** / ***Febrero*** and the number ***2*** in the context of months          | 4.443856851443512e-08          |
+| 8        | [4762](https://www.neuronpedia.org/gemma-2-2b/20-gemmascope-res-16k/4762)                                                                         | References to ***Degrees*** / ***Grados Celsius*** / ***Atmospheric temperature***                    | 4.444231090244995e-08          |
+| 9        | [14036](https://www.neuronpedia.org/gemma-2-2b/20-gemmascope-res-16k/14036)                                                                       | Not clearly interpretable                                                                             | 4.4451682604606074e-08         |
+| 10       | [12412](https://www.neuronpedia.org/gemma-2-2b/20-gemmascope-res-16k/12412)                                                                       | References to ***Education*** / ***Educar*** / ***Instruir***                                         | 4.445858874005918e-08          |
+: Top features according to the Bilingual Interpretability Score. The position is taken ***after filtering out the dead features*** and all the scoring calculation was done ***ignoring the BOS token*** of each sample {#tbl-results}
+:::
+
+
+
+```{python}
+# | code-fold: true
+
+import torch.nn.functional as F
+
+
+def ur_kldiv(input: torch.tensor, target: torch.tensor, dim=0) -> torch.tensor:
+    return target * (target.log() - input.log())
+
+
+def JSD(p_logits: torch.tensor, q_logits: torch.tensor, dim=0) -> torch.tensor:
+    # We will normalize them for numerical reasons
+    p, q = p_logits.to(torch.float64), q_logits.to(torch.float64)
+    p = p * 100 / p.max()
+    q = q * 100 / q.max()
+
+    p = p.softmax(dim=dim)
+    q = q.softmax(dim=dim)
+    m = 0.5 * (p + q)
+
+    jsd = 0.5 * (ur_kldiv(p, m).mean(dim=0) + ur_kldiv(q, m).mean(dim=0))
+    return jsd
+
+
+def Idaf(activations):
+    d, l, t, f = activations.size()
+    idaf = (d * l) / (activations.view(-1, t, f).max(dim=1).values > 0).sum(0)
+    idaf = torch.where(((d * l) / idaf) < 10, 1.0, idaf)
+    return -idaf
+
+
+# We will get the indeces of the features that are dead
+es_dead_features = (activation_tensor[:, 0, 1:, :].max(dim=1).values > 0).sum(0) == 0
+en_dead_features = (activation_tensor[:, 1, 1:, :].max(dim=1).values > 0).sum(0) == 0
+dead_features = es_dead_features | en_dead_features
+
+# Activations for the first and second language ignoring the BOS token
+es_acts = (
+    activation_tensor[:, 0, 1:, :].max(dim=1).values
+)  # From 1: in third dim to filter-out BOS
+en_acts = activation_tensor[:, 1, 1:, :].max(dim=1).values
+
+jsd = JSD(es_acts, en_acts)
+idaf = Idaf(activation_tensor[:, :, 1:, :])
+
+# Calculate the beta hyperparameter
+beta_num = (
+    -jsd[~dead_features].sort(descending=False).values[0]
+    - jsd[~dead_features].sort(descending=False).values[300]
+).item()
+beta = beta_num / (idaf[~dead_features].max() - idaf[~dead_features].min())
+
+# Calculate the BI score
+BI = jsd + beta * idaf
+
+# We will sort the features by the BI score and filter out the dead features
+unfiltered = BI.sort(descending=False)
+mask = ~dead_features
+idx_order = unfiltered.indices[mask[unfiltered.indices]]
+idx_value = unfiltered.values[mask[unfiltered.indices]]
+
+# We will plot the distribution of the BI score
+
+fig = go.Figure()
+fig.add_trace(
+    go.Scatter(x=np.arange(idx_value.size(0)), y=idx_value.numpy(), mode="lines")
+)
+fig.update_layout(
+    title="Distribution of the <b>Bilingual Interpretability Score</b> on alive features",
+    xaxis_title="SAE features post filtering of dead features",
+    yaxis_title="BI loss value",
+    template="plotly_white",
+)
+fig.show()
+```
 
 ## Discussion
 
