@@ -94,9 +94,7 @@ For our bilingual dataset, we used a small sample of the OPUS Books dataset [@ti
 
 To extract the features from the SAE, we used the `HookedSAETransformer` class from the `SAELens` library. This class allows us to *hook* our SAE to a given language model, and cache the activations of the SAE for a given set of inputs. 
 
-We ran the `HookedSAETransformer` on the English and Spanish versions of the sentences in our dataset, and stored the activations using the `datasets` library from Hugging Face. This data is publicly available at hugging face datasets hub under the name *diegomezp/gemmascope_bilingual_activations*. It contains the activations of the SAE for each sentence in the dataset, in both languages as well as the token ids of the sentences.
-
-We can use such data to visualize some basic activation statistics across dataset. 
+We ran the `HookedSAETransformer` on the English and Spanish sample pairs, and stored the activations using the `datasets` library from Hugging Face. This data is publicly available at hugging face hub under the name *diegomezp/gemmascope_bilingual_activations*. It contains not only the activations of the SAE for the sample pairs, but also the token ids of each sentence.
 
 ```{python}
 # | code-fold: true
@@ -279,16 +277,95 @@ print_activation_stats("lang_0", activation_stats["stats"]["lang_0"])
 
 print_activation_stats("lang_1", activation_stats["stats"]["lang_1"])
 
-```
+``` 
 
-**On the graphs above**: We can see the percentage of samples that each feature activated. And each different line represents a different threshold for the activation of the features. The higher the threshold, the less features are activated. The features are ordered by the percentage of samples that activate them, so the first features are the ones that are activated by the most samples. 
 
-The ***BOS Token*** (*Begining of Sequence*) is not considered in the statistics, as it is a special token that SAEs features have an imnense positive activation bias.
+**On the graphs above**: For each feature, we can see the percentage of dataset samples for which they activated. By setting ever increasing thresholds for the activation logits, we can also see by *how much* they activated. We used the 5%, 25%, 50%, 75%, and 95% quantiles, as well as the mean activation as thresholds.
+
+> Note that the x-axis is not showing feature ids, but the features ordered by the percentage of samples that activated them.
+
+The ***BOS Token*** (*Begining of Sequence*) is not considered in the statistics, as it is a special token against which the SAEs features have an imnense positive activation bias.
 
 > Ignoring the BOS token will be a recurring theme in the rest of the analysis.
 
+Apart from the exponential decay in the percentage of samples that activate a feature, we can see that both spanish and english samples have a very similar overall distribution of activations, with the english subset having slightly higher *activation intensities*. This is a good sign that bilingual features are not only present but probably common in this particular SAE. 
 
 ### Billingual Interpretability Score
+
+We define a ***bilingual interpretability*** score by having separate *bilingual* and *interpretability* components. The *bilingual* component is a measure of how similar the activations of a feature are across languages, while the *interpretability* component is a measure of activation frequency, that in this particular scenario, is a proxy for how easy it would be to interpret a feature.
+
+#### Bilingual Loss
+
+Let's say we have our dataset $D$ which is a disjoint union of $D_{es}$ and $D_{en}$, with, clearly, $|D_{es}| = |D_{en}| = n$, i.e, english and spanish datasets have the same size. 
+
+Let $(d_{es}^k, d_{en}^k)$ be the natural k-th pairing of spanish-english samples.
+
+Let $d\_sae$ be the number of features we have for our SAE
+
+Let $f$ be the composition of our model up to the hooked layer and our SAE encoder such that $f(d) \in R^{ctx\_size}\times R^{d\_sae}$ is the SAE feature activations for dataset example $d$, with $ctx\_size$ being the number of tokens of example $d$.
+
+Then, for each feature $F_i$ with $i \in [0, d\_sae-1]$, we can define a bilingual scoring function $BF_{D}(\cdot)$ by converting the activation vector for each language into a distribution with a ***softmax*** and then applying some symmetric measure of distance like the ***Jensen-Shannon divergence***. Formally:
+
+::: column-margin
+We chose the ***Jensen-Shannon divergence*** instead of things like ***cross-entropy*** because it is symmetric and always positive. The fact that it is symmetric is important, since a we should be comparing both languages without preference for one or the other. Also, this divergence is naturaly extendable to more than two languages, which is a feature we might want to explore in the future.
+
+:::
+
+Let
+
+$$
+q^i_{lang} := [max(f(d_{lang}^0)_i), \cdots, max(f(d_{lang}^n)_i)]^T \in R^{d\_sae}
+$$
+
+With $lang \in \{en, es\}$ and $i \in [0, d\_sae-1]$ being the corresponding maximum activation logit-vector of the feature $F_i$ for the language $lang$.
+
+Then:
+
+::: column-margin
+
+We ran into numercial precision problems with this definition, so, some changes were made which are detailed in @sec-apendix-jsd. We do not think this changes the overall interpretation of the score, nor the results of the analysis, so we left the original, easier to understand, definition in the main text.
+
+:::
+
+$$
+BF_{D}(F_i) := JSD(softmax(q^i_{es}), softmax(q^i_{en}))
+$$
+
+With $JSD$ being the ***Jensen-Shannon divergence*** given by:
+
+
+$$
+JSD(p, q) := \frac{1}{2} D_{KL}(p | \textbf{M}) +  \frac{1}{2} D_{KL}(q | \textbf{M})
+$$
+
+Where $\textbf{M}$ is the mixture distribution $\frac{1}{2}(p + q)$ and $D_{KL}$ is the standar ***Kullback-Leibler divergence***
+
+::: column-margin
+**Random idea:** Can we force multilinguality in the SAEs by training them with multilingual samples and using the above loss (batched clearly) as complementary to the reconstruction and sparsity losses?
+:::
+
+The prior metric gives us zeros when our feature is perfectly bilingual (activates not only in the same samples but with the same magnitude). This definition has a clear drawback, things like completely dead features (that produce zeros for all tokens) are perfectly bilingual, so we ended up wiltering them out for much of the analysis.
+
+#### Ease-of-Interpretability Loss
+
+We did not want to deal with with those features that activated for a large portion of the dataset, since they are not only hard to interpret, but also probably not very useful for our purposes. We borrowed ideas from Information Retrieval and defined an ***Inverse Document Activation Frequency*** (IDAF) for each feature, which is the inverse of the percentage of samples that activate a feature. Formally:
+
+$$
+idaf_{D}(F_i) := \frac{|D|}{\sum_{d \in D} \textbf{1}_{max(f(d)) > 0}}
+$$
+
+> Note that a feature with zero activations in the whole set will cause a division by zero error. That is another reason we need to filter those out first.
+
+And the final score for a given feature $F_i$ will be:
+
+$$
+Bilingual\_Interpretability_{D}(F_i) := BF_{D}(F_i) + \beta \cdot idaf_{D}(F_i)
+$$
+
+The $\beta$ parameter is a hyperparameter that we tuned specificaly so the $idaf$ term only acted as a reranker for the top features that were already good in the bilingual component. The specifics of this tuning are detailed in @sec-apendix-beta.
+
+
+
 
 ### Results
 
@@ -301,6 +378,10 @@ The ***BOS Token*** (*Begining of Sequence*) is not considered in the statistics
 ## Conclusion
 
 ## Apendix
+
+### Considerations for Better Numerical Properties of the JSD {#sec-apendix-jsd}
+
+### On the $\beta$ Hyperparameter {#sec-apendix-beta}
 
 ### On SAELens and TransformersLens
 
