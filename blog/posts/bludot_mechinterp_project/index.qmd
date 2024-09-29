@@ -12,7 +12,7 @@ format:
     code-fold: true
     code-summary: "Show source"
     code-copy: true
-    smooth-scroll: true
+    smooth-scroll: false
 # bibliography: ref.bib
 # csl: ieee-with-url.csl
 # title-block-banner: images/banner.png
@@ -57,14 +57,6 @@ Much of the recent work regarding SAEs and mechanistic interpretability, has bee
 In this work, we present a systematic, data-driven process to generate a list of candidate bilingual features from a GemmaScope SAE. We define a bilingual interpretability score for each feature, which is dependent on a dataset of equivalent English-Spanish sentences. We then rank the features based on this score and analyze them. Finally, we discuss the potential for extending this methodology to include more that 2 languages.
 
 
-
-
-
-
-
-
-
-
 <!-- ## Hopes for Mechanistic Interpretability -->
 
 ## Preliminaries: Quick Background on Sparse autoencoders
@@ -95,20 +87,216 @@ For our experiments, we used ***Gemma 2-2B*** as our language model on its base 
 
 The 2B version of the Gemma 2 models has 26 layers [@team2024gemma], so a SAE trained on the 20th residual stream is expected to have learned more abstract features than earlier layers. Moreover, we decided to use the residual stream instead of the attention heads because it is an information bottleneck where not only the prior attention head writes to, but also all the later ones, so one should expect that the features learned in this specific point are more abstract and general than those inside the attention mechanism [@elhage2021mathematical].
 
-For our bilingual dataset, we will use a small sample of the OPUS Books dataset [@tiedemann-2012-parallel], with equivalent English-Spanish sentences. 
+For our bilingual dataset, we used a small sample of the OPUS Books dataset [@tiedemann-2012-parallel], with equivalent English-Spanish sentences. 
 
 
 ### Feature Extraction
 
-To extract the features from the SAE, we used the `HookedSAETransformer` class from the `SAELens` library. This class allows us to *hook* our SAE to a given language model, and cache the activations of the SAE for a given input. 
+To extract the features from the SAE, we used the `HookedSAETransformer` class from the `SAELens` library. This class allows us to *hook* our SAE to a given language model, and cache the activations of the SAE for a given set of inputs. 
 
-<!-- ### Overview of GemmaScope SAEs -->
+We ran the `HookedSAETransformer` on the English and Spanish versions of the sentences in our dataset, and stored the activations using the `datasets` library from Hugging Face. This data is publicly available at hugging face datasets hub under the name *diegomezp/gemmascope_bilingual_activations*. It contains the activations of the SAE for each sentence in the dataset, in both languages as well as the token ids of the sentences.
+
+We can use such data to visualize some basic activation statistics across dataset. 
+
+```{python}
+# | code-fold: true
+# | column: body-outset
+
+import os
+from huggingface_hub import login
+from datasets import load_dataset
+from dotenv import load_dotenv
+import torch
+import plotly.graph_objects as go
+import numpy as np
+import warnings
+
+warnings.filterwarnings("ignore")
+
+# load the environment variables
+load_dotenv(override=True)
+
+# login to hugging face
+hf_token = os.getenv("HF_TOKEN")
+login(token=hf_token, add_to_git_credential=True)
+
+# download the dataset
+sample_ds = load_dataset("diegomezp/gemmascope_bilingual_activations").with_format(
+    "torch"
+)
+sample_ds = sample_ds["train"]
+
+activation_tensor = torch.nested.nested_tensor(
+    sample_ds["sae_features"]
+).to_padded_tensor(0.0)
+
+
+def get_single_lang_statistics(activation_tensor: torch.tensor) -> dict:
+    """
+    Input:
+      activation_tensor (torch.tensor float32): Tensor of size (samples, tokens, features)
+
+    Output:
+      (dict) : {
+          "mean": {
+            "value": float,
+            "series": tensor size(|features|)
+          },
+          "q_0.05": # same structure as mean,
+          "q_0.25": # same,
+          "q_0.50": # same,
+          "q_0.75": # same,
+          "q_0.95": # same,
+        }
+    """
+    s, t, f = activation_tensor.size()
+    # Get quantils only for those logits > 0
+    activation_logits = activation_tensor[activation_tensor > 0]
+    mean_act = activation_logits.mean()
+    quantiles = [0.05, 0.25, 0.5, 0.75, 0.95]
+    quantiles_values = torch.quantile(activation_logits, torch.tensor(quantiles))
+
+    thresholds = {"mean": mean_act}
+    thresholds.update({f"q_{q}": v for q, v in zip(quantiles, quantiles_values)})
+    response = dict()
+    max_activations = activation_tensor.max(dim=1).values  # size (s, f)
+
+    for name, threshold in thresholds.items():
+        response[name] = dict(value=threshold.item())
+        final_activations = (
+            (max_activations > threshold).to(float).mean(dim=0)
+        )  # size f
+        response[name]["series"] = final_activations.sort(descending=True).values
+    return response
+
+
+def get_activation_statistics(activation_tensor: torch.tensor) -> dict:
+    """
+    Both globally and for each language dimension we will get as much as 4 series
+    of size |features|. Each of those series will represent what percentage of
+    the samples had at least one activation of a given feature.
+    The ordering of the features in such tensor will also be returned, and we will
+    use quantiles and mean for setting the activation threshold:
+
+    Input:
+      activation_tensor (torch.tensor): Tensor of size (samples, languages, tokens, features)
+
+    Response:
+      (dict) : {
+        "stats: {
+            "global": {
+              "mean": {
+                "value": float,
+                "series": tensor size(|features|)
+              },
+              "q_0.05": # same structure as mean,
+              "q_0.25": # same,
+              "q_0.50": # same,
+              "q_0.75": # same,
+              "q_0.95": # same,
+            },
+            "lang_0": # Same structure as before,
+            ...
+            "lang_n": # Same as before
+          }
+        }
+    """
+    assert len(activation_tensor.size()) == 4, (
+        "ActivationTensor must have 4 dims" "(samples, languages, tokens, features)"
+    )
+    s, l, t, f = activation_tensor.size()
+    response = dict()
+    response["stats"] = dict()
+    response["stats"]["global"] = get_single_lang_statistics(
+        activation_tensor.reshape(-1, t, f)
+    )
+
+    for idx in range(l):
+        response["stats"][f"lang_{idx}"] = get_single_lang_statistics(
+            activation_tensor[:, idx, :, :]
+        )
+
+    return response
+
+
+activation_stats = get_activation_statistics(
+    activation_tensor[:, :, 1:, :]
+)  # Ignoring BOS token
+
+
+# Determine the number of groups and tensors
+num_groups = len(activation_stats["stats"])
+num_tensors = len(activation_stats["stats"]["global"])
+
+titles = {
+    "global": "Percentage of samples that each feature activated (ordered)",
+    "lang_0": "Percentage of activated Spanish samples (ordered)",
+    "lang_1": "Percentage of activated English samples (ordered)",
+}
+
+
+def print_activation_stats(group_name, group_data):
+    fig = go.Figure()
+    for series_name, series_data in group_data.items():
+        fig.add_trace(
+            go.Scatter(
+                x=np.arange(series_data["series"].size(0)),  # X-axis: indices of tensor
+                y=series_data["series"].numpy(),  # Y-axis: tensor values
+                mode="lines",  # Line plot
+                name=f"{series_name}={series_data['value']:.2f}",  # Name for the legend
+                showlegend=True,
+            )
+        )
+
+    # Update layout
+    fig.update_layout(
+        title=titles[group_name],
+        xaxis_title="Ordered SAE Features",
+        yaxis_title="Percentage of Activating Samples",
+        legend_title="Activation Threshold",
+        template="plotly_white",
+        xaxis_type="log",
+    )
+
+    fig.show()
+
+
+# print_activation_stats("global", activation_stats["stats"]["global"])
+
+```
+
+```{python}
+# | code-fold: true
+# | column: body-outset
+
+print_activation_stats("lang_0", activation_stats["stats"]["lang_0"])
+
+```
+
+```{python}
+# | code-fold: true
+# | column: body-outset
+
+print_activation_stats("lang_1", activation_stats["stats"]["lang_1"])
+
+```
+
+**On the graphs above**: We can see the percentage of samples that each feature activated. And each different line represents a different threshold for the activation of the features. The higher the threshold, the less features are activated. The features are ordered by the percentage of samples that activate them, so the first features are the ones that are activated by the most samples. 
+
+The ***BOS Token*** (*Begining of Sequence*) is not considered in the statistics, as it is a special token that SAEs features have an imnense positive activation bias.
+
+> Ignoring the BOS token will be a recurring theme in the rest of the analysis.
+
 
 ### Billingual Interpretability Score
 
 ### Results
 
 ## Discussion
+
+### Limitations
+
+### Future Work
 
 ## Conclusion
 

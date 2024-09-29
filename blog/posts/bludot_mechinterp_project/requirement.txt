@@ -1,0 +1,7 @@
+jupyter
+datasets
+huggingface-hub
+torch
+plotly
+matplotlib
+python-dotenv
