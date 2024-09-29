@@ -93,7 +93,7 @@ For our bilingual dataset, we used a small sample of the OPUS Books dataset [@ti
 
 ### Feature Extraction
 
-To extract the features from the SAE, we used the `HookedSAETransformer` class from the `SAELens` library. This class allows us to *hook* our SAE to a given language model, and cache the activations of the SAE for a given set of inputs. 
+To extract the features from the SAE, we used the `HookedSAETransformer` class from the `SAELens` library [@bloom2024saetrainingcodebase]. This class allows us to *hook* our SAE to a given language model, and cache the activations of the SAE for a given set of inputs. 
 
 We ran the `HookedSAETransformer` on the English and Spanish sample pairs, and stored the activations using the `datasets` library from Hugging Face. This data is publicly available at hugging face hub under the name *diegomezp/gemmascope_bilingual_activations*. It contains not only the activations of the SAE for the sample pairs, but also the token ids of each sentence.
 
@@ -366,14 +366,111 @@ $$
 The $\beta$ parameter is a hyperparameter that we tuned specificaly so the $idaf$ term only acted as a reranker for the top features that were already good in the bilingual component. The specifics of this tuning are detailed in @sec-apendix-beta.
 
 
+#### Feature Interpretation
+
+When we come across a candidate Bilingual feature, the final step is to try to interpret it. There are many tools for this task, and one usually can not be 100% sure of the interpretation of a feature, nevertheless, we can use the ***Feature Dashboards*** and maximum activation samples from our dataset, to get a sense of what is the feature activating for.
+
+For example, the following neuronpedia dashboard, shows top activations for the feature with id 10194, which seems to be related to the concept of ***United States***:
+
+```{python}
+#| code-fold: true
+#| column: page
+
+from IPython.display import IFrame
+
+# get a random feature from the SAE
+feature_idx = 2647
+
+html_template = "https://neuronpedia.org/{}/{}/{}?embed=true&embedexplanation=true&embedplots=true&embedtest=true&height=300"
+neuronpedia_sae, neuronpedia_id = "gemma-2-2b/20-gemmascope-res-16k".split("/")
+
+def get_dashboard_html(feature_idx=0, sae_release = neuronpedia_sae, sae_id=neuronpedia_id):
+    return html_template.format(sae_release, sae_id, feature_idx)
+
+US_FT_IDX = 10194
+IFrame(get_dashboard_html(US_FT_IDX), width=1200, height=600)
+```
+
+For our use case, neuronpedia has a major limitation, which is that we can not filter the samples by language. 
+
+To overcome this limitation, we used the `circuitsvis` library to visualize the top activations samples from our own dataset, which we can easily filter by language [@cooney2023circuitsvis]. For example, the following, shows the top activations for the previously shown feature with index 10194, but now we can see the activations for both languages:
+
+```{python}
+# | code-fold: true
+# | column: page
+
+from circuitsvis.tokens import colored_tokens
+
+
+def get_tokens_and_acts(
+    idx, ft_idx, ds=sample_ds, activations=activation_tensor, include_bos=False
+):
+    start_idx = 0 if include_bos else 1
+    str_tokens_es = ds[idx]["str_tokens"]["es"][start_idx:]
+    str_tokens_en = ds[idx]["str_tokens"]["en"][start_idx:]
+
+    token_act_es = activations[idx, 0, start_idx : (len(str_tokens_es) + 1), ft_idx]
+    token_act_en = activations[idx, 1, start_idx : (len(str_tokens_en) + 1), ft_idx]
+
+    t = ["<b>EN:</b>  "] + str_tokens_en + ["      <b>ES:</b>  "] + str_tokens_es
+    a = [0] + token_act_en.tolist() + [0] + token_act_es.tolist()
+
+    return colored_tokens(t, a)
+
+
+greatest_act = (
+    activation_tensor[:, 1, 1:, US_FT_IDX].max(dim=-1).values.sort(descending=True)
+)
+get_tokens_and_acts(greatest_act.indices[0].item(), US_FT_IDX)
+```
+
+```{python}
+#| code-fold: true
+#| column: page
+
+get_tokens_and_acts(greatest_act.indices[1].item(), US_FT_IDX)
+```
+
+Finally, we can get a general sense of what our score is actually looking for by plotting the logits of a given feature across the whole dataset.
+
+```{python}
+# | code-fold: true
+# | column: body-outset
+
+import matplotlib.pyplot as plt
+
+idx = US_FT_IDX
+
+display_ctxt_size = 70
+fig_es = activation_tensor[:, 0, 1:, idx][:, :display_ctxt_size].numpy()
+fig_en = activation_tensor[:, 1, 1:, idx][:, :display_ctxt_size].numpy()
+
+fig, axes = plt.subplots(1, 2, figsize=(10, 5))  # 1 row, 2 columns
+
+im_en = axes[0].imshow(fig_en, cmap="hot", interpolation="nearest", aspect="auto")
+im_es = axes[1].imshow(fig_es, cmap="hot", interpolation="nearest", aspect="auto")
+fig.colorbar(im_en, ax=axes[0])
+fig.colorbar(im_es, ax=axes[1])
+axes[0].set_title(f"Activation Feature {idx} for EN")
+axes[0].set_xlabel("Tokens")
+axes[0].set_ylabel("Samples")
+axes[1].set_title(f"Activation Feature {idx} for ES")
+axes[1].set_xlabel("Tokens")
+axes[1].set_ylabel("Samples")
+plt.show()
+```
 
 
 ### Results
 
+In this section we summarize the main results of our analysis. We will show the top features according to the Bilingual Interpretability Score toghether with their possible interpretations.
+
+@tbl-results shows the top 11 ranked features according to the Bilingual Interpretability Score (lower scores are better). We can see how these top ranked features are indeed activating for concepts in both languages. 
+
 
 :::{.column-page}
 
-| **Position** | **Feature ID**                                                                                                                                   | **Interpretation**                                                                                   | **BI Loss Value**             |
+| **Position** | **Feature ID**                                                                                                                                   | **Possible Interpretation**                                                                                   | **BI Loss Value**             |
 |--------------|---------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------|-------------------------------|
 | 0        | [6530](https://www.neuronpedia.org/gemma-2-2b/20-gemmascope-res-16k/6530)                                                                         | Not clearly interpretable                                                                             | 4.442881974691051e-08          |
 | 1        | [2009](https://www.neuronpedia.org/gemma-2-2b/20-gemmascope-res-16k/2009)                                                                         | References to ***Quality*** and ***Calidad***                                                         | 4.4428819793659613e-08         |
@@ -389,6 +486,7 @@ The $\beta$ parameter is a hyperparameter that we tuned specificaly so the $idaf
 : Top features according to the Bilingual Interpretability Score. The position is taken ***after filtering out the dead features*** and all the scoring calculation was done ***ignoring the BOS token*** of each sample {#tbl-results}
 :::
 
+Also, the actual scores seem to be really small numbers, with little separation between them. To get a sense of the distribution of the scores, we can plot them as a line plot:
 
 
 ```{python}
@@ -437,9 +535,8 @@ jsd = JSD(es_acts, en_acts)
 idaf = Idaf(activation_tensor[:, :, 1:, :])
 
 # Calculate the beta hyperparameter
-beta_num = (
-    -jsd[~dead_features].sort(descending=False).values[0]
-    - jsd[~dead_features].sort(descending=False).values[300]
+beta_num = -(
+    jsd[~dead_features].sort(descending=False).values[300] - jsd[~dead_features].min()
 ).item()
 beta = beta_num / (idaf[~dead_features].max() - idaf[~dead_features].min())
 
@@ -467,6 +564,8 @@ fig.update_layout(
 fig.show()
 ```
 
+Our score seems to behave in a clear exponential fashion, where the top features are close to 7 orders of magnitude better than the worst ones. 
+
 ## Discussion
 
 ### Limitations
@@ -482,29 +581,6 @@ fig.show()
 ### On the $\beta$ Hyperparameter {#sec-apendix-beta}
 
 ### On SAELens and TransformersLens
-
-### Interpretation of Feature Dashboards
-
-```{python}
-#| code-fold: true
-#| column: page
-
-from IPython.display import IFrame
-
-# get a random feature from the SAE
-feature_idx = 2647
-
-html_template = "https://neuronpedia.org/{}/{}/{}?embed=true&embedexplanation=true&embedplots=true&embedtest=true&height=300"
-
-def get_dashboard_html(sae_release = "gpt2-small", sae_id="7-res-jb", feature_idx=0):
-    return html_template.format(sae_release, sae_id, feature_idx)
-
-# Neuronpedia names are usually different to the ones in HF/SAE_Lens
-neuronpedia_sae, neuronpedia_id = "gemma-2-2b/20-gemmascope-res-16k".split("/")
-html = get_dashboard_html(sae_release = neuronpedia_sae, sae_id=neuronpedia_id, feature_idx=feature_idx)
-IFrame(html, width=1200, height=600)
-```
-
 
 
 
