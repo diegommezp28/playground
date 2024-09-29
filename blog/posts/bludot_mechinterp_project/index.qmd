@@ -568,11 +568,36 @@ Our score seems to behave in a clear exponential fashion, where the top features
 
 ## Discussion
 
+In this work, we presented a systematic, data-driven process to generate a list of candidate bilingual features from a GemmaScope SAE. We defined a bilingual interpretability score for each feature, which is dependent on a dataset of equivalent English-Spanish sentences. We then ranked the features based on this score and analyzed them.
+
+We showed how this otherwise simple approach, can be used to find features that are not only bilingual, but also interpretable. 
+
+Crucially, we showed that we use data-based approaches to actively look for interpretable feattures with some specific properties, in this case, bilingualism. This is a clear departure from the usual approach of finding features that are interpretable by chance, and it is a step towards a more systematic and data-driven approach to mechanistic interpretability.
+
+
 ### Limitations
+
+This was a rather time and resource constrained project, so there is a lot of room for improvement. For example, the dataset we used was very small, and the SAE we used was not the most powerful one. We also did not thoroughly explore the effect of the $\beta$ hyperparameter in the final results, nor did we explore the effect of the dataset size on Bilingual Interpretability Scores. 
+
+Also, numerical precision problems with the Jensen-Shannon divergence, forced us to make some changes to the original definition of the score, which may have affected the results, and which ideally should be further and more rigorously explored.
+
+Moreover, the part of the score is a very simplistic choice base only on the activation frequency of the features. This is a very naive approach, and it would be interesting to explore more sophisticated ways which may be better proxies for interpretability of a given feature.
+
+Finally, the interpretation step itself is very manual and subjective, and it would be interesting to explore ways to automate this process, or at least to make it more systematic.
 
 ### Future Work
 
-## Conclusion
+There are many ways in which this work can be extended. For example, we could explore the effect of the dataset size on the Bilingual Interpretability Score, or we could explore the effect of the $\beta$ hyperparameter on the final results. 
+
+Also, we pointed out that the use of the Jensen-Shannon divergence as a measure of similarity between the activations of a feature across languages can be extended to more than two languages, opening the possibility of finding features that are multilingual in a more general sense. 
+
+Our ideas can also be used in the training phase of the SAEs, to force them to learn multilingual features, and to explore the effect of this on the final performance of the model. By setting the Jensen-Shannon divergence as a complementary loss to the reconstruction and sparsity losses, and by training the model with a portion of multilingual samples, we could force the model to learn features that are not only interpretable but also multilingual.
+
+Finally, we could explore how the choice of the hook point in the model affects the final results, and the distribution of multilingual features in the SAE.
+
+
+### Acknowledgements
+This work is the final project for the course on AI Safety and Alignment from BlueDot Impact. I would like to thank the BlueDot team for their support and guidance throughout the course. In particular, I would like to thank my facilitator, ***Aaron Scher***, for his insightful feedback and encouragement. I would also like to thank my peers for their feedback and support throughout the course.
 
 ## Apendix
 
