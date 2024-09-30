@@ -29,12 +29,12 @@ comments:
     issue-term: pathname
 bibliography: ref.bib
 csl: journal-of-the-royal-statistical-society.csl
-# image: images/thumbnail.png
+image: images/bluedot_project_img.png
 website:
   google-analytics: "G-CZPF74BXL1"
   cookie-consent: true
-  # open-graph: 
-  #   image: images/thumbnail.png
+  open-graph: 
+    image: images/bluedot_project_img.png
   twitter-card: true
 editor:
   render-on-save: true
@@ -55,6 +55,8 @@ To reproduce all the results, feel free to use this [Colab Notebook](https://git
 Sparse autoencoders (SAEs) trained on the attention heads and residual streams of large language models have shown great promise at producing seemingly interpretable features [@cunningham2023sparse]. Features gathered from SAEs can be used to understand the inner workings of large language models and even to steer their behaviour in a desired direction [@templeton2024scaling]. 
 
 Is not uncommon to find that some of the features learned by SAEs are multilingual, this is particularly interesting because it suggests that the model has learned to represent and reason through concepts in an abstract way that is independent of the language it is written in. The multilinguality of features, can be viewed as evidence for the *universality of features hypothesis*, which states that learned representations are universal and can form across models and tasks. This is one of the main speculative claims of the mechanistic interpretability agenda [@olah2020zoom].
+
+![Rough Illustration of a Hooked SAE](images/bluedot_project_img.png){width=99% #fig-methodology}
 
 But, how can we find these multilingual features in a SAE?
 
@@ -88,7 +90,7 @@ In this section, we will describe the specific methodology that arises from this
 
 ### Basic Setup
 
-For our experiments, we used ***Gemma 2-2B*** as our language model on its base pretrained version without any intruction tuning. We focused our experiments on a single SAE from the GemmaScope collection of open-source SAEs [@lieberum2024gemma], specifically, the one with id *gemma-scope-2b-pt-res-canonical/layer_20/width_16k/canonical*. This SAE has 16k features and is trained on the residual stream of the 20th layer of the model. It is the smallest version of this particular hook point, and the choice for its size was made purely for computational reasons.
+For our experiments, we used ***Gemma 2-2B*** as our language model on its base pretrained version without any intruction tuning (See @fig-methodology). We focused our experiments on a single SAE from the GemmaScope collection of open-source SAEs [@lieberum2024gemma], specifically, the one with id *gemma-scope-2b-pt-res-canonical/layer_20/width_16k/canonical*. This SAE has 16k features and is trained on the residual stream of the 20th layer of the model. It is the smallest version of this particular hook point, and the choice for its size was made purely for computational reasons. 
 
 The 2B version of the Gemma 2 models has 26 layers [@team2024gemma], so a SAE trained on the 20th residual stream is expected to have learned more abstract features than earlier layers. Moreover, we decided to use the residual stream instead of the attention heads because it is an information bottleneck where not only the prior attention head writes to, but also all the later ones, so one should expect that the features learned in this specific point are more abstract and general than those inside the attention mechanism [@elhage2021mathematical].
 
