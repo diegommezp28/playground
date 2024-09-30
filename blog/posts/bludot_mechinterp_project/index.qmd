@@ -13,12 +13,11 @@ format:
     code-summary: "Show source"
     code-copy: true
     smooth-scroll: false
-# bibliography: ref.bib
-# csl: ieee-with-url.csl
-# title-block-banner: images/banner.png
-# title-block-banner-color: black
+    fontsize: 14pt
+    css: 
+      - styles.css
+
 categories: ["en", "NLP", "Mechanistic Interpretability", "SAE", "Multilinguality", "Research Style Blog"]
-# image: images/thumbnail.png
 toc: true
 toc-location: left
 tbl-cap-location: bottom
@@ -29,18 +28,24 @@ comments:
     theme: github-dark-orange
     issue-term: pathname
 bibliography: ref.bib
+csl: journal-of-the-royal-statistical-society.csl
+# image: images/thumbnail.png
 website:
   # open-graph: 
   #   image: images/thumbnail.png
   twitter-card: true
 editor:
   render-on-save: true
-# jupyter: python3
+abstract: |
+  This blog post presents a systematic, data-driven process to generate a list of candidate bilingual features from a GemmaScope Sparse autoencoder. We define a bilingual interpretability score for each feature, which is dependent on a dataset of equivalent English-Spanish sentences. We then rank the features based on this score and analyze them. Finally, we discuss the potential for extending this methodology to include more than 2 languages.
+
+nocite: |
+  @rajamanoharan2024improving, @bricken2023towards
 ---
 
 ::: column-margin
 ## Reproducibility
-To reproduce all the results, feel free to use this [Colab Notebook](https://colab.research.google.com). But, be aware that in order to run the part of the code that gathers the activations, you will need around 24-25GB of RAM in CPU or close to that VRAM if on GPU. The colab free tier does not provide this amount of resources. You can still run the analysis part of the code with this [dataset](https://huggingface.co/datasets/diegomezp/gemmascope_bilingual_activations). The latter will run on almost any relatively modern computer.
+To reproduce all the results, feel free to use this [Colab Notebook](https://githubtocolab.com/diegommezp28/playground/blob/main/blog/notebooks/candidates_for_interp_biling_features.ipynb). But, be aware that in order to run the part of the code that gathers the activations, you will need around 24-25GB of RAM in CPU or close to that VRAM if on GPU. The colab free tier does not provide this amount of resources. You can still run the analysis part of the code with this [dataset](https://huggingface.co/datasets/diegomezp/gemmascope_bilingual_activations). The latter will run on almost any relatively modern computer.
 :::
 
 ## Introduction
@@ -58,19 +63,16 @@ Much of the recent work regarding SAEs and mechanistic interpretability, has bee
 In this work, we present a systematic, data-driven process to generate a list of candidate bilingual features from a GemmaScope SAE. We define a bilingual interpretability score for each feature, which is dependent on a dataset of equivalent English-Spanish sentences. We then rank the features based on this score and analyze them. Finally, we discuss the potential for extending this methodology to include more that 2 languages.
 
 
-<!-- ## Hopes for Mechanistic Interpretability -->
 
-## Preliminaries: Quick Background on Sparse autoencoders
+<!-- ## Preliminaries: Quick Background on Sparse autoencoders
 
 ### Basic Theory
 
 ### JumpRelu Sparse autoencoder
 
-### GemmaScope SAEs
+### GemmaScope SAEs -->
 
 ## Methodology
-
-<!-- In this section, we will describe the methodology used to find bilingual features in a given SAE. First, we will describe the data collection process, then we will explain how we extract features from the SAE, and finally, we will describe the bilingual interpretability score we use to rank the features. -->
 
 **The driving intuition behind our methodology** is that, inspite of changes in tokenization, word order, general linguistic structure, and even the distribution of feature logits across languages, for a feature to be bilingual, it is necessary that it circumvents these differences and be activated by the same or similar sentences in both languages.
 
@@ -577,11 +579,11 @@ Crucially, we showed that we use data-based approaches to actively look for inte
 
 ### Limitations
 
-This was a rather time and resource constrained project, so there is a lot of room for improvement. For example, the dataset we used was very small, and the SAE we used was not the most powerful one. We also did not thoroughly explore the effect of the $\beta$ hyperparameter in the final results, nor did we explore the effect of the dataset size on Bilingual Interpretability Scores. 
+This was a rather time and resource constrained project, so there is a lot of room for improvement. For example, the dataset sample size we used was very small, and the SAE we used was not the most powerful one. We also did not thoroughly explore the effect of the $\beta$ hyperparameter in the final results, nor did we explore the effect of the dataset size on Bilingual Interpretability Scores. 
 
 Also, numerical precision problems with the Jensen-Shannon divergence, forced us to make some changes to the original definition of the score, which may have affected the results, and which ideally should be further and more rigorously explored.
 
-Moreover, the part of the score is a very simplistic choice base only on the activation frequency of the features. This is a very naive approach, and it would be interesting to explore more sophisticated ways which may be better proxies for interpretability of a given feature.
+Moreover, the *idaf* score is a very simplistic choice base only on the activation frequency of the features, which may not be the best proxy for interpretability. This is a very naive approach, and it would be interesting to explore more sophisticated ways of numerically asessing the interpretability of a feature.
 
 Finally, the interpretation step itself is very manual and subjective, and it would be interesting to explore ways to automate this process, or at least to make it more systematic.
 
@@ -597,16 +599,41 @@ Finally, we could explore how the choice of the hook point in the model affects 
 
 
 ### Acknowledgements
-This work is the final project for the course on AI Safety and Alignment from BlueDot Impact. I would like to thank the BlueDot team for their support and guidance throughout the course. In particular, I would like to thank my facilitator, ***Aaron Scher***, for his insightful feedback and encouragement. I would also like to thank my peers for their feedback and support throughout the course.
+This work is the final project for the course on AI Safety and Alignment from BlueDot Impact. I would like to thank the BlueDot team for their support and guidance throughout the course. In particular, I would like to thank my facilitator, ***Aaron Scher***, for his insightful feedback and encouragement. I would also like to thank my peers for their feedback and support in the project phase.
 
 ## Apendix
 
 ### Considerations for Better Numerical Properties of the JSD {#sec-apendix-jsd}
 
+The calculation of the Jensen-Shannon divergence as we defined it, has some numerical problems. The main one is that the softmax function can produce very small numbers, which can lead to numerical instability when calculating the logarithm needed to compute the Kullback-Leibler divergence. Remember, the Kurback-Leibler divergence for two discrete probability distributions $P$ and $Q$ is defined as:
+
+$$
+D_{KL}(P | Q) = \sum_{i} P(i) \log \left(\frac{P(i)}{Q(i)}\right)
+$$
+
+The problem in here, is that when $P(i)$ is very close to zero, the logarithm can be a very large negative number, easly leading to overflow and `-inf` values. Even though, theoretically, the Jensen-Shannon divergence should be always well defined and positive, in practice, we can run into these problems that lead to `nan` values in the final score. 
+
+Sadly, the raw logits of our features can be very large for the maximum activations, but also very small for the rest of the activations, such that it is almost certain that we will run into this problem after applying the softmax, specifically to those features where the maximum activation is very large in relation to the mean activation.
+
+To overcome this issue, we *smoothed* the raw logit distributions before applying the softmax. In our case, we simply chose a threshold value of 100, and then normalized all the logits such as the maximum logit was 100. Formaly, before applying the softmax, we did:
+
+$$
+q^i_{lang} := \frac{100}{max(f(d_{lang}^0)_i)} \cdot [max(f(d_{lang}^0)_i), \cdots, max(f(d_{lang}^n)_i)]^T \in R^{d\_sae}
+$$
+
+This simple trick, allowed us to avoid the numerical problems we were facing, and to calculate the Jensen-Shannon divergence without any issues.
+
+> We chose 100, since we noted that this will result in numbers close to the maximum precision of `float64`, making the best compromise between numerical stability and precision.
+
 ### On the $\beta$ Hyperparameter {#sec-apendix-beta}
 
-### On SAELens and TransformersLens
+The $\beta$ hyperparameter was chosen to, at most, be able to change the order of the top 300 features. In other words, we wanted the range between the minimum and maximum values of the $idaf$ score to be no more than the range between the minimum and the 300th value of the Jensen-Shannon divergence score. Formally, we defined $\beta$ as:
 
+$$
+\beta = - \frac{JSD_{300} - JSD_{min}}{IDAF_{max} - IDAF_{min}}
+$$
 
+Where $JSD_{300}$ is the 300th value of the Jensen-Shannon divergence score, and $JSD_{min}$ is the minimum value of the Jensen-Shannon divergence score. $IDAF_{max}$ and $IDAF_{min}$ are the maximum and minimum values of the Inverse Document Activation Frequency score, respectively.
 
-...
+Also, the negative sign is there to make the top features have lower scores.
+
