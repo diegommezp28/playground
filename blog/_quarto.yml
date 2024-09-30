@@ -4,6 +4,7 @@ project:
 website:
   title: "DAGP"
   favicon: favicon.jpeg
+  google-analytics: "G-CZPF74BXL1"
   navbar:
     left: 
       - blog.qmd
