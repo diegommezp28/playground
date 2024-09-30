@@ -31,6 +31,8 @@ bibliography: ref.bib
 csl: journal-of-the-royal-statistical-society.csl
 # image: images/thumbnail.png
 website:
+  google-analytics: "G-CZPF74BXL1"
+  cookie-consent: true
   # open-graph: 
   #   image: images/thumbnail.png
   twitter-card: true
