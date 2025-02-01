@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "development environment"
+version = "0.1.0"
+description = "This will contain all the dependencies and requirements needed for development purposes"
+authors = ["Diego Gómez <diego.polo@rappi.com>"]
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.11"
+jupyter = "^1.1.1"
+black = "^24.10.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

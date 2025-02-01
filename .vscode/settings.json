@@ -5,5 +5,12 @@
         "upgreek"
     ],
     "quarto.visualEditor.markdownReferenceLinks": true,
-    "editor.formatOnSave": true
+    "editor.formatOnSave": true,
+    "files.associations": {
+        "ostream": "cpp"
+    },
+    "black-formatter.args": [
+        "--line-length",
+        "79"
+    ],
 }
