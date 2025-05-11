@@ -18,6 +18,6 @@ about:
 
 Hi, my name is Diego Andrés Gómez Polo, a colombian Systems & Computing Engineer and Mathematician from Universidad de los Andes. 
 
-Currently a Machine Learning Engineer at Rappi.
+Currently a Machine Learning Engineer at Simetrik.
 
-This is my personal blog, for anything and everything but mostly AI stuff. 
+This is my personal blog, for anything and everything but mostly AI and Python stuff.  
