@@ -1,0 +1,37 @@
+[project]
+name = "emergent-misalignment"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "accelerate>=1.7.0",
+    "editables>=0.5",
+    "jupyter>=1.1.1",
+    "numpy>=2.2.6",
+    "pandas>=2.2.3",
+    "torch==2.6.0",
+    "transformers>=4.51.3",
+    "vllm>=0.8.5.post1",
+]
+
+[project.optional-dependencies]
+build = ["ninja>=1.11.1.4", "packaging>=25.0", "setuptools>=80.7.1"]
+compile = ["flash-attn>=2.7.4.post1"]
+
+
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-cu124", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+torchvision = [
+    { index = "pytorch-cu124", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu124"
+url = "https://download.pytorch.org/whl/cu124"
+explicit = true
+
+[tool.uv]
+no-build-isolation-package = ["flash-attn"]
